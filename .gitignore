@@ -5,6 +5,11 @@
 # cloneable on its own.
 docs/backlog
 
+# Local working notes (CLAUDE.local.md) and design specs and plans
+# (docs/superpowers) are local links too, for the same reason.
+CLAUDE.local.md
+docs/superpowers
+
 # Local working state
 .local/
 
