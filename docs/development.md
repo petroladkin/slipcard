@@ -34,15 +34,22 @@ swift run            # starts the menu bar app
 swift test           # unit tests, no display needed
 ```
 
-`swift run` starts the app as a menu bar item (no Dock icon). To check the
-popup's window behaviour by hand:
+`swift run` starts the app as a menu bar item (a book icon, no Dock icon);
+"Quit vocab-popup" in its menu stops it. `swift run VocabPopup --show-after 5`
+also shows a popup five seconds after the start. To check the popup's window
+behaviour by hand:
 
-1. Put another app in full screen (green button) and start typing in it.
-2. Trigger a popup ("Next word now" in the menu bar item).
-3. The popup must appear over the full-screen app, on the same Space, and
-   your typing must keep going into the other app.
+1. Start the app, then put another app in full screen (green button) and start
+   typing in it.
+2. Trigger a popup: "Next word in 5 s" in the menu bar item gives you time to
+   switch back to the full-screen app, or start the app with `--show-after 5`.
+3. The popup must appear in the middle of the screen over the full-screen app,
+   on the same Space, and your typing must keep going into the other app.
+4. Show and Close must work with a click, and the other app must stay in full
+   screen.
 
-Accessibility and notification permissions are not needed.
+The app itself needs no permissions (Accessibility, notifications, Screen
+Recording).
 
 ## Linux (Pop!_OS 24.04, COSMIC)
 
