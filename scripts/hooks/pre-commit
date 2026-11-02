@@ -1,0 +1,38 @@
+#!/bin/bash
+# Pre-commit guards. Enable once per clone:
+#   git config core.hooksPath scripts/hooks
+# To get past a guard deliberately: git commit --no-verify
+
+# 1. No commits on integration branches.
+#
+# Work goes on a feature/fix/release/hotfix branch and reaches dev or main
+# through a pull request.
+branch=$(git symbolic-ref --short -q HEAD)
+case "$branch" in
+  dev|main)
+    echo "refusing to commit on '$branch': work belongs on a branch." >&2
+    echo "  git switch -c feature/<name>   (your changes come along)" >&2
+    exit 1
+    ;;
+esac
+
+# 2. No lines matching the maintainer's local deny-list.
+#
+# Optional: if .git/info/private-patterns exists (one extended regular
+# expression per line, matched case-insensitively), staged added lines that
+# match any of them are refused. The list lives outside the repository so that
+# the repository does not itself publish what it is meant to keep out.
+patterns="$(git rev-parse --git-common-dir)/info/private-patterns"
+if [ -s "$patterns" ]; then
+  hits=$(git diff --cached -U0 --no-color --diff-filter=d \
+    | grep -E '^(\+\+\+ |\+)' \
+    | awk '/^\+\+\+ /{file=substr($0,7); next} {print file": "substr($0,2)}' \
+    | grep -iE -f "$patterns")
+  if [ -n "$hits" ]; then
+    echo "refusing to commit lines that match .git/info/private-patterns:" >&2
+    printf '%s\n' "$hits" | sed 's/^/  /' >&2
+    exit 1
+  fi
+fi
+
+exit 0

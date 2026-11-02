@@ -1,0 +1,21 @@
+name: Feature
+description: Something vocab-popup should do that it does not.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do while learning, and where does vocab-popup get in the way or fall short?
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: OS and desktop
+      description: Where you would use it.
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried
+      description: The workaround you use today, if any.

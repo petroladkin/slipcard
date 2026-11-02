@@ -1,0 +1,38 @@
+name: Bug
+description: vocab-popup does something other than the documentation says.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: vocab-popup version
+      description: The version in the tray menu's About, or the commit you built.
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: OS and desktop
+      description: "macOS version; or Linux distribution, version, desktop and Wayland/X11 (`echo $XDG_CURRENT_DESKTOP $XDG_SESSION_TYPE`)."
+      placeholder: Pop!_OS 24.04, COSMIC, wayland
+    validations:
+      required: true
+  - type: input
+    id: anki
+    attributes:
+      label: Anki and AnkiConnect versions
+      description: Help → About in Anki; AnkiConnect's version from Tools → Add-ons.
+  - type: textarea
+    id: did
+    attributes:
+      label: What you did
+      description: The steps. For window problems, what was on screen (a full-screen app, a tiled layout, several monitors).
+    validations:
+      required: true
+  - type: textarea
+    id: saw
+    attributes:
+      label: What you saw, and what you expected
+      description: A screenshot helps for window placement and focus problems. Hide card content you do not want public.
+    validations:
+      required: true
