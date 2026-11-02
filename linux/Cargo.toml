@@ -1,0 +1,14 @@
+[package]
+name = "vocab-popup"
+version = "0.0.0"
+edition = "2024"
+# The newest rustc in the Ubuntu 24.04 archive (rustc-1.91); with edition 2024
+# cargo resolves dependencies to versions that build with it.
+rust-version = "1.91"
+license = "Apache-2.0"
+description = "Anki vocabulary cards in a timed popup (Linux app)"
+publish = false
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.10", features = ["v4_12"] }
+gtk4-layer-shell = "0.7"

@@ -1,4 +1,5 @@
 .DS_Store
+._*
 
 # docs/backlog is a local link to the maintainer's task tracker, which lives
 # outside this repository. It is not committed: this repository is meant to be
@@ -23,3 +24,6 @@ xcuserdata/
 # Linux build output (GTK4 app)
 build/
 builddir/
+
+# Rust (Linux app)
+linux/target/
