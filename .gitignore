@@ -1,0 +1,20 @@
+.DS_Store
+
+# docs/backlog is a local link to the maintainer's task tracker, which lives
+# outside this repository. It is not committed: this repository is meant to be
+# cloneable on its own.
+docs/backlog
+
+# Local working state
+.local/
+
+# Swift / Xcode (macOS app)
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# Linux build output (GTK4 app)
+build/
+builddir/
