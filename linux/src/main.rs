@@ -136,8 +136,10 @@ fn show_popup(app: &gtk::Application) {
     let window = gtk::Window::builder()
         .application(app)
         .title("vocab-popup")
-        .css_classes(["vocab-popup"])
         .build();
+    // Add to the window's CSS classes, do not replace them: the default
+    // "background" class is what gives the popup the theme's background.
+    window.add_css_class("vocab-popup");
     window.set_size_request(420, 220);
 
     if gtk4_layer_shell::is_supported() {
