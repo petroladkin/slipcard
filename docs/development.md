@@ -100,8 +100,10 @@ To check the popup's window behaviour by hand:
    `layer shell supported by the compositor: true`.
 2. Start the app with `--show-after 5`, switch to an editor (maximised, or in
    full screen) and keep typing; auto-tiling may be on.
-3. The popup must appear in the middle of the screen above the editor; no
-   window may move or resize, and your typing must keep going into the editor.
+3. The popup must appear in the middle of the screen above the editor, on an
+   opaque background in the theme's colours, so the word stays readable over
+   a busy window; no window may move or resize, and your typing must keep
+   going into the editor.
 4. Show and Close must work with a click; Close removes the popup.
 
 On a desktop without layer shell (GNOME, X11) the app warns and shows an
