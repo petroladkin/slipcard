@@ -5,6 +5,7 @@
 
 use crate::anki::{self, Card, Ease, State};
 use crate::card_text::plain;
+use crate::countdown::Countdown;
 use crate::scheduler::Scheduler;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,14 +94,53 @@ pub struct PopupModel {
     pub front: String,
     pub back: String,
     stage: Stage,
+    /// The Close button's countdown; it stops for good on a reaction.
+    countdown: Countdown,
 }
 
 impl PopupModel {
-    pub fn new(card: Card) -> Self {
-        PopupModel { front: plain(&card.question_html), back: plain(&card.answer_html), card, stage: Stage::Front }
+    /// `countdown_seconds` comes from the settings; `shown_at_ms` is when the
+    /// popup appears, where the countdown starts.
+    pub fn new(card: Card, countdown_seconds: u32, shown_at_ms: i64) -> Self {
+        PopupModel {
+            front: plain(&card.question_html),
+            back: plain(&card.answer_html),
+            card,
+            stage: Stage::Front,
+            countdown: Countdown::new(countdown_seconds, shown_at_ms),
+        }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))] // read by the tests
+    pub fn countdown(&self) -> &Countdown {
+        &self.countdown
+    }
+
+    /// The Close button's label at `now_ms`: "Close (N)", or "Close" once the
+    /// countdown stopped.
+    pub fn close_label(&self, now_ms: i64) -> String {
+        self.countdown.label(now_ms)
+    }
+
+    /// The countdown timer ticked. True when the count reached zero: the
+    /// popup closes now, without an answer, the way the Close button closes it.
+    pub fn tick(&mut self, now_ms: i64) -> bool {
+        if self.stage == Stage::Closed || !self.countdown.is_expired(now_ms) {
+            return false;
+        }
+        self.close()
+    }
+
+    /// The pointer moved over the popup: the user reacted, so the countdown
+    /// stops for good. True when it stopped now (redraw the button). A
+    /// pointer that only rests where the popup appeared sends no motion.
+    pub fn pointer_moved(&mut self) -> bool {
+        if self.countdown.is_stopped() {
+            return false;
+        }
+        self.countdown.stop();
+        true
+    }
+
     pub fn stage(&self) -> &Stage {
         &self.stage
     }
@@ -125,8 +165,9 @@ impl PopupModel {
         }
     }
 
-    /// Show.
+    /// Show; it stops the countdown for good, like a pointer over the popup.
     pub fn reveal(&mut self) {
+        self.countdown.stop();
         if self.stage == Stage::Front {
             self.stage = Stage::Back;
         }
@@ -254,15 +295,96 @@ mod tests {
         assert_eq!(f.next_fire(), Some(t + 15 * 60));
     }
 
+    const T0: i64 = 1_800_000_000_000;
+
     fn model() -> PopupModel {
-        PopupModel::new(Card {
-            id: 42,
-            queue: 2,
-            due: 0,
-            question_html: "<style>.card{}</style><b>reluctant</b>".into(),
-            answer_html: "\n\nnot willing<div><i>He was reluctant.</i></div>".into(),
-            next_reviews: vec![],
-        })
+        PopupModel::new(
+            Card {
+                id: 42,
+                queue: 2,
+                due: 0,
+                question_html: "<style>.card{}</style><b>reluctant</b>".into(),
+                answer_html: "\n\nnot willing<div><i>He was reluctant.</i></div>".into(),
+                next_reviews: vec![],
+            },
+            30,
+            T0,
+        )
+    }
+
+    fn model_with(seconds: u32) -> PopupModel {
+        PopupModel::new(card(), seconds, T0)
+    }
+
+    #[test]
+    fn the_default_countdown_is_the_settings_default() {
+        let m = PopupModel::new(card(), Settings::default().countdown_seconds, T0);
+        assert_eq!(m.close_label(T0), "Close (30)");
+    }
+
+    #[test]
+    fn the_popup_closes_at_zero() {
+        let mut m = model();
+        assert!(!m.tick(T0 + 10_000));
+        assert_eq!(m.stage(), &Stage::Front);
+        assert!(m.tick(T0 + 30_000));
+        assert_eq!(m.stage(), &Stage::Closed);
+    }
+
+    #[test]
+    fn auto_close_is_not_an_answer() {
+        // Closing by the countdown never begins a grade: nothing to send.
+        let mut m = model_with(5);
+        assert!(m.tick(T0 + 5_000));
+        assert_eq!(m.stage(), &Stage::Closed);
+        assert_eq!(m.begin_grade(Ease::Good), None);
+        assert!(!m.finish_grade(Ok(())));
+    }
+
+    #[test]
+    fn close_is_not_an_answer() {
+        let mut m = model();
+        assert!(m.close());
+        assert_eq!(m.begin_grade(Ease::Again), None);
+    }
+
+    #[test]
+    fn pointer_over_the_popup_stops_the_countdown_for_good() {
+        let mut m = model();
+        assert!(m.pointer_moved());
+        assert_eq!(m.close_label(T0 + 1_000), "Close");
+        assert!(!m.tick(T0 + 30_000));
+        assert!(!m.tick(T0 + 3_600_000));
+        assert_eq!(m.stage(), &Stage::Front);
+        // Moving again changes nothing: it never restarts.
+        assert!(!m.pointer_moved());
+        assert_eq!(m.close_label(T0 + 3_600_000), "Close");
+    }
+
+    #[test]
+    fn show_stops_the_countdown_for_good() {
+        let mut m = model();
+        m.tick(T0 + 3_000);
+        m.reveal();
+        assert_eq!(m.close_label(T0 + 4_000), "Close");
+        assert!(!m.tick(T0 + 60_000));
+        assert_eq!(m.stage(), &Stage::Back);
+    }
+
+    #[test]
+    fn a_tick_after_close_does_nothing() {
+        let mut m = model();
+        assert!(m.close());
+        assert!(!m.tick(T0 + 30_000));
+    }
+
+    #[test]
+    fn a_grade_after_show_still_closes() {
+        let mut m = model_with(5);
+        m.reveal();
+        assert!(!m.tick(T0 + 10_000));
+        assert_eq!(m.begin_grade(Ease::Good), Some((7, Ease::Good)));
+        assert!(m.finish_grade(Ok(())));
     }
 
     #[test]
@@ -342,7 +464,7 @@ mod tests {
             r[id.to_string()].as_array().cloned().unwrap_or_default()
         };
         let before = reviews(card.id).len();
-        let mut m = PopupModel::new(card);
+        let mut m = PopupModel::new(card, 30, 0);
         assert!(!m.front.is_empty() && !m.front.contains('<'));
         m.reveal();
         let (id, ease) = m.begin_grade(Ease::Easy).unwrap();
@@ -350,5 +472,32 @@ mod tests {
         let after = reviews(id);
         assert_eq!(after.len(), before + 1);
         assert_eq!(after.last().unwrap()["ease"], 4);
+    }
+
+    /// The countdown reaching zero and the Close button, through the model the
+    /// window calls: no review is recorded and the card stays due.
+    #[test]
+    #[ignore = "needs the test Anki"]
+    fn closing_without_a_grade_leaves_the_card_due() {
+        use serde_json::json;
+        let url = std::env::var("SLIPCARD_ANKI_URL").unwrap_or_else(|_| "http://127.0.0.1:8765".into());
+        let client = anki::Client::new(&url, std::env::var("SLIPCARD_ANKI_KEY").ok(), anki::DEFAULT_TIMEOUT);
+        let profile = client.active_profile().expect("the test Anki answers");
+        assert_eq!(profile, "Slipcard Test", "refusing: the active profile is {profile}");
+        for how in ["countdown", "close"] {
+            let card = client.next_due_card("deck:\"Slipcard Test\" is:review is:due").unwrap().expect("a review card");
+            let id = card.id;
+            let reviews = || {
+                let r = client.call("getReviewsOfCards", json!({ "cards": [id.to_string()] })).unwrap();
+                r[id.to_string()].as_array().map_or(0, Vec::len)
+            };
+            let before = reviews();
+            let mut m = PopupModel::new(card, 5, T0);
+            let closed = if how == "countdown" { m.tick(T0 + 5_000) } else { m.close() };
+            assert!(closed, "{how}");
+            assert_eq!(reviews(), before, "{how}: no review recorded");
+            let due = client.call("findCards", json!({ "query": format!("cid:{id} is:due") })).unwrap();
+            assert_eq!(due, json!([id]), "{how}: the card stays due");
+        }
     }
 }

@@ -72,6 +72,26 @@ struct AnkiConnectIntegrationTests {
         #expect((after.last?["ease"] as? NSNumber)?.intValue == 4)
     }
 
+    /// The countdown reaching zero and the Close button, through the model the
+    /// panel calls: no review is recorded and the card stays due.
+    @MainActor @Test(arguments: ["countdown", "close"])
+    func closingWithoutAGradeLeavesTheCardDue(how: String) async throws {
+        let client = try await guardedClient()
+        let card = try #require(try await client.nextDueCard(query: "\(Self.deck) is:review is:due"))
+        let before = try await reviews(of: card.id, client)
+        let shown = Date()
+        let model = CardPopupModel(card: card, client: client, countdownSeconds: 5, shownAt: shown)
+        var closed = false
+        model.onClose = { closed = true }
+        if how == "countdown" { model.tick(now: shown + 5) } else { model.close() }
+        #expect(closed)
+        #expect(model.stage == .closed)
+        let after = try await reviews(of: card.id, client)
+        #expect(after.count == before.count)
+        let stillDue = try await client.call("findCards", ["query": "cid:\(card.id) is:due"]) as? [Any]
+        #expect(stillDue?.count == 1)
+    }
+
     func reviews(of id: Int64, _ client: AnkiConnectClient) async throws -> [[String: Any]] {
         let result = try await client.call("getReviewsOfCards", ["cards": [String(id)]]) as? [String: Any]
         return result?[String(id)] as? [[String: Any]] ?? []

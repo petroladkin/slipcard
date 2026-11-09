@@ -84,6 +84,8 @@ public final class CardPopupModel {
     public private(set) var stage: Stage = .front {
         didSet { onChange?() }
     }
+    /// The Close button's countdown; it stops for good on a reaction.
+    public private(set) var countdown: Countdown
     /// Called after every stage change.
     public var onChange: (() -> Void)?
     /// Called once, when the popup should go away.
@@ -91,15 +93,46 @@ public final class CardPopupModel {
 
     private let answer: Answer
 
-    public init(card: Card, answer: @escaping Answer) {
+    /// `countdownSeconds` comes from the settings; `shownAt` is when the
+    /// popup appears, where the countdown starts.
+    public init(
+        card: Card, countdownSeconds: Int = Settings.defaults.countdownSeconds,
+        shownAt: Date = Date(), answer: @escaping Answer
+    ) {
         self.card = card
         front = CardText.plain(card.questionHTML)
         back = CardText.plain(card.answerHTML)
+        countdown = Countdown(seconds: countdownSeconds, started: shownAt)
         self.answer = answer
     }
 
-    public convenience init(card: Card, client: AnkiConnectClient) {
-        self.init(card: card) { id, ease in try await client.answer(cardID: id, ease: ease) }
+    public convenience init(
+        card: Card, client: AnkiConnectClient,
+        countdownSeconds: Int = Settings.defaults.countdownSeconds, shownAt: Date = Date()
+    ) {
+        self.init(card: card, countdownSeconds: countdownSeconds, shownAt: shownAt) { id, ease in
+            try await client.answer(cardID: id, ease: ease)
+        }
+    }
+
+    /// The Close button's title at `now`: "Close (N)", or "Close" once the
+    /// countdown stopped.
+    public func closeLabel(at now: Date) -> String { countdown.label(at: now) }
+
+    /// The countdown timer ticked: at zero the popup closes, without an
+    /// answer, the same way the Close button closes it.
+    public func tick(now: Date) {
+        guard stage != .closed, countdown.isExpired(at: now) else { return }
+        close()
+    }
+
+    /// The pointer moved over the popup: the user reacted, so the countdown
+    /// stops for good. A pointer that only rests where the popup appeared
+    /// sends no movement and does not count.
+    public func pointerMoved() {
+        guard !countdown.isStopped else { return }
+        countdown.stop()
+        onChange?()
     }
 
     public var showsAnswer: Bool { stage != .front }
@@ -122,8 +155,9 @@ public final class CardPopupModel {
         return nil
     }
 
-    /// Show.
+    /// Show; it stops the countdown for good, like a pointer over the popup.
     public func reveal() {
+        countdown.stop()
         if stage == .front { stage = .back }
     }
 
