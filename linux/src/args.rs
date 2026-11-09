@@ -4,19 +4,23 @@
 pub enum Mode {
     /// Print what the app sees of the system and exit.
     Check,
+    /// Print the card a popup would show now, or the connection state, and exit.
+    NextCard,
     /// Run, showing the first popup after this many seconds.
     Run { show_after: u32 },
 }
 
-pub const USAGE: &str = "usage: slipcard [--show-after SECONDS] | --check";
+pub const USAGE: &str = "usage: slipcard [--show-after SECONDS] | --check | --next-card";
 
 pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Mode, String> {
     let mut show_after = 0;
     let mut check = false;
+    let mut next_card = false;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--check" => check = true,
+            "--next-card" => next_card = true,
             "--show-after" => {
                 let value = args.next().ok_or("--show-after needs a number of seconds")?;
                 show_after = value
@@ -27,7 +31,13 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Mode, String> {
             other => return Err(format!("unknown option: {other}\n{USAGE}")),
         }
     }
-    Ok(if check { Mode::Check } else { Mode::Run { show_after } })
+    Ok(if check {
+        Mode::Check
+    } else if next_card {
+        Mode::NextCard
+    } else {
+        Mode::Run { show_after }
+    })
 }
 
 #[cfg(test)]
@@ -58,6 +68,12 @@ mod tests {
     #[test]
     fn check_wins_over_run() {
         assert_eq!(parse_str(&["--show-after", "5", "--check"]), Ok(Mode::Check));
+    }
+
+    #[test]
+    fn next_card_is_its_own_mode() {
+        assert_eq!(parse_str(&["--next-card"]), Ok(Mode::NextCard));
+        assert_eq!(parse_str(&["--next-card", "--check"]), Ok(Mode::Check));
     }
 
     #[test]

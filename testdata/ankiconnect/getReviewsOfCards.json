@@ -1,0 +1,27 @@
+{
+  "result": {
+    "1794264260702": [
+      {
+        "id": 1794264260794,
+        "usn": -1,
+        "ease": 0,
+        "ivl": 1,
+        "lastIvl": 0,
+        "factor": 2500,
+        "time": 0,
+        "type": 4
+      },
+      {
+        "id": 1794264261569,
+        "usn": -1,
+        "ease": 3,
+        "ivl": 4,
+        "lastIvl": 1,
+        "factor": 2500,
+        "time": 0,
+        "type": 1
+      }
+    ]
+  },
+  "error": null
+}
