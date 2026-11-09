@@ -13,3 +13,4 @@ All notable changes are listed here. The format follows
 - Scheduler on both platforms: the interval without stacking, pause for an hour, quiet hours across midnight, next word now, and no burst of popups after sleep.
 - The popup shows the next due card from Anki (front, Show, back) and sends Again / Hard / Good / Easy.
 - The Close button counts down (`countdownSeconds`) and closes the popup without an answer; moving the pointer over the popup or pressing Show stops it.
+- The AnkiConnect key is also sent as `Authorization: Bearer`, so a proxy can guard an AnkiConnect-compatible server.

@@ -15,9 +15,12 @@ final class StubAnkiServer: @unchecked Sendable {
     private let replies: [String: Data]
     private let lock = NSLock()
     private var _requests: [[String: Any]] = []
+    private var _authorizations: [String?] = []
 
     /// The JSON bodies received, in order.
     var requests: [[String: Any]] { lock.withLock { _requests } }
+    /// The Authorization header of each request (nil when absent), in order.
+    var authorizations: [String?] { lock.withLock { _authorizations } }
     var actions: [String] { requests.compactMap { $0["action"] as? String } }
 
     init(replies: [String: Data] = [:], behaviour: Behaviour = .respond) throws {
@@ -81,6 +84,10 @@ final class StubAnkiServer: @unchecked Sendable {
                     .flatMap { Int($0.split(separator: ":")[1].trimmingCharacters(in: .whitespaces)) } ?? 0
                 if data.count - end.upperBound >= length {
                     let body = data[end.upperBound..<(end.upperBound + length)]
+                    let authorization = head.split(separator: "\r\n")
+                        .first { $0.lowercased().hasPrefix("authorization:") }
+                        .map { String($0.dropFirst("authorization:".count)).trimmingCharacters(in: .whitespaces) }
+                    lock.withLock { _authorizations.append(authorization) }
                     respond(client, to: body)
                     return
                 }
