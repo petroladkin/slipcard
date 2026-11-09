@@ -6,10 +6,13 @@
 //!   slipcard                    show a popup now
 //!   slipcard --show-after 5     show the first popup after 5 s
 //!   slipcard --check            print the OS, desktop and layer-shell support
+//!   slipcard --next-card        print the card a popup would show now, and exit
 //!
 //! While it runs, Enter in the terminal shows another popup; q and Enter, or
 //! Ctrl-C, quits.
 
+#[allow(dead_code)]
+mod anki;
 mod args;
 // Read now; the scheduler and the tray (next steps) use the rest of it.
 #[allow(dead_code)]
@@ -44,6 +47,7 @@ fn main() -> glib::ExitCode {
     };
     match mode {
         args::Mode::Check => check(),
+        args::Mode::NextCard => next_card(),
         args::Mode::Run { show_after } => run(show_after),
     }
 }
@@ -89,6 +93,42 @@ fn check() -> glib::ExitCode {
         println!("settings: {problem}");
     }
     glib::ExitCode::SUCCESS
+}
+
+/// Asks AnkiConnect for the card a popup would show now and prints it or the
+/// connection state; no window. Exit status: 0 a card is due, 3 none is due,
+/// 1 Anki failed.
+fn next_card() -> glib::ExitCode {
+    let (path, load) = load_settings();
+    println!("settings: {} ({})", path.display(), describe(&load.file));
+    for problem in &load.problems {
+        println!("settings: {problem}");
+    }
+    let s = &load.settings;
+    let key = if s.anki_connect_key.is_some() { "key set" } else { "no key" };
+    println!("anki: {} ({key}), search: {}", s.anki_connect_url, s.card_query);
+    match anki::Client::from_settings(s).next_due_card(&s.card_query) {
+        Ok(Some(card)) => {
+            println!("state: {}", anki::State::Connected);
+            println!(
+                "next card: {}, queue {}, due {}, grades {:?}",
+                card.id, card.queue, card.due, card.next_reviews
+            );
+            let front = card.question_html.split("</style>").last().unwrap_or("");
+            println!("front (raw): {}", front.chars().take(120).collect::<String>());
+            println!("back (raw): {}", card.answer_html.chars().take(120).collect::<String>());
+            glib::ExitCode::SUCCESS
+        }
+        Ok(None) => {
+            println!("state: {}", anki::State::Connected);
+            println!("next card: none due");
+            glib::ExitCode::from(3)
+        }
+        Err(e) => {
+            println!("state: {} ({e:?})", anki::State::Failed(e.clone()));
+            glib::ExitCode::FAILURE
+        }
+    }
 }
 
 fn load_settings() -> (std::path::PathBuf, settings::Load) {

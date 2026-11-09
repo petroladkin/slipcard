@@ -57,6 +57,45 @@ back after a reboot. `ANKICONNECT_BIND=0.0.0.0` makes it reachable from your
 machine (`SLIPCARD_ANKI_URL=http://<host>:8765`); requests without the key
 are refused. Keep a headless Anki like this for test profiles only.
 
+### The AnkiConnect client
+
+Both apps talk to AnkiConnect (API version 6) at the address and with the
+key from the [settings](#settings); the request timeout is 3 s. The card a
+popup shows comes from `findCards` with the settings' `cardQuery`, read with
+`cardsInfo` (100 cards per request): learning cards first, then the most
+overdue review cards, then new cards; suspended and buried cards never.
+Every failure is its own state, logged and shown by the tray: Anki not
+running or not reachable, no answer in time, a refused API key, an error
+from AnkiConnect, or an answer that is not AnkiConnect's.
+
+To see what a popup would show, without any window:
+
+```sh
+swift run Slipcard --next-card          # macOS (from macos/)
+target/debug/slipcard --next-card       # Linux (from linux/)
+# exit status: 0 a card is due, 3 none is due, 1 Anki failed
+```
+
+Unit tests run against a stub AnkiConnect replaying the replies recorded in
+`testdata/ankiconnect/`, which both platforms share. Integration tests run
+against a test Anki, on demand only; like `test_deck.py`, they stop before
+anything else unless the active profile is `Slipcard Test`:
+
+```sh
+scripts/test-anki/test_deck.py reset
+# macOS (from macos/)
+SLIPCARD_ANKI_INTEGRATION=1 SLIPCARD_ANKI_URL=... SLIPCARD_ANKI_KEY=... \
+  swift test --filter AnkiConnectIntegrationTests
+# Linux (from linux/)
+SLIPCARD_ANKI_URL=... SLIPCARD_ANKI_KEY=... cargo test -- --ignored --test-threads=1
+scripts/test-anki/test_deck.py reset    # the tests grade cards
+```
+
+On macOS the binary that `swift build` makes reaches an Anki on another
+host of the LAN over plain `http` with no extra permission (checked on
+macOS 27). What the `Slipcard.app` bundle needs for the same (App Transport
+Security, the Local Network permission) is checked when the bundle is made.
+
 ## Settings
 
 Both apps read one JSON file at start:
