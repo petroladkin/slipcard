@@ -14,6 +14,9 @@
 #[allow(dead_code)]
 mod anki;
 mod args;
+// The popup and the tray (next steps) drive it.
+#[allow(dead_code)]
+mod scheduler;
 // Read now; the scheduler and the tray (next steps) use the rest of it.
 #[allow(dead_code)]
 mod settings;
