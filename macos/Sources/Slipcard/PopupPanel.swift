@@ -1,5 +1,5 @@
 import AppKit
-import VocabPopupCore
+import SlipcardCore
 
 /// The card popup: a borderless, non-activating panel that floats over every
 /// Space, full-screen apps included, and leaves keyboard focus where it was.

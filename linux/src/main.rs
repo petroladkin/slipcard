@@ -3,9 +3,9 @@
 //! COSMIC draws it centred above every window, full-screen ones included,
 //! never tiles it and never gives it keyboard focus.
 //!
-//!   vocab-popup                    show a popup now
-//!   vocab-popup --show-after 5     show the first popup after 5 s
-//!   vocab-popup --check            print the OS, desktop and layer-shell support
+//!   slipcard                    show a popup now
+//!   slipcard --show-after 5     show the first popup after 5 s
+//!   slipcard --check            print the OS, desktop and layer-shell support
 //!
 //! While it runs, Enter in the terminal shows another popup; q and Enter, or
 //! Ctrl-C, quits.
@@ -20,10 +20,10 @@ use gtk::glib;
 use gtk::prelude::*;
 use gtk4_layer_shell::{KeyboardMode, Layer, LayerShell};
 
-const APP_ID: &str = "io.github.petroladkin.VocabPopup";
+const APP_ID: &str = "io.github.petroladkin.Slipcard";
 const CSS: &str = "
-.vocab-popup { border-radius: 14px; padding: 24px; }
-.vocab-popup .word { font-size: 28pt; font-weight: 600; }
+.slipcard { border-radius: 14px; padding: 24px; }
+.slipcard .word { font-size: 28pt; font-weight: 600; }
 ";
 
 enum Command {
@@ -129,17 +129,17 @@ fn run(show_after: u32) -> glib::ExitCode {
         glib::timeout_add_seconds_local_once(show_after, move || show_popup(&app_for_first));
     });
     // Options are parsed above; GApplication gets none of them.
-    app.run_with_args(&["vocab-popup"])
+    app.run_with_args(&["slipcard"])
 }
 
 fn show_popup(app: &gtk::Application) {
     let window = gtk::Window::builder()
         .application(app)
-        .title("vocab-popup")
+        .title("Slipcard")
         .build();
     // Add to the window's CSS classes, do not replace them: the default
     // "background" class is what gives the popup the theme's background.
-    window.add_css_class("vocab-popup");
+    window.add_css_class("slipcard");
     window.set_size_request(420, 220);
 
     if gtk4_layer_shell::is_supported() {
@@ -149,7 +149,7 @@ fn show_popup(app: &gtk::Application) {
         // typing keeps going into the app below. Pointer input still works.
         window.init_layer_shell();
         window.set_layer(Layer::Overlay);
-        window.set_namespace(Some("vocab-popup"));
+        window.set_namespace(Some("slipcard"));
         window.set_keyboard_mode(KeyboardMode::None);
     }
 

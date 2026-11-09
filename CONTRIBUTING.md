@@ -1,4 +1,4 @@
-# Contributing to vocab-popup
+# Contributing to Slipcard
 
 Thanks for looking. The project is young (before 0.1) and the shape of the
 code is still settling, so **open an issue before a pull request** and say
@@ -73,7 +73,7 @@ The project follows gitflow:
   APIs give (non-activating panels, layer-shell surfaces).
 - **The popup never takes keyboard focus** unless the user clicks it. A change
   that makes it steal focus, even in an edge case, is a bug.
-- **Anki owns the data.** vocab-popup reads cards and sends grades through
+- **Anki owns the data.** Slipcard reads cards and sends grades through
   AnkiConnect and stores nothing about cards itself. Settings (interval, quiet
   hours) are the only local state.
 - **Fail visibly.** When Anki or AnkiConnect is not reachable, the tray says
@@ -93,6 +93,6 @@ notice.
 ## Reporting a problem
 
 Bugs go to the issue tracker: your OS and desktop (for Linux: distribution,
-version, compositor, Wayland or X11), the vocab-popup and Anki versions, what
+version, compositor, Wayland or X11), the Slipcard and Anki versions, what
 you did, what you saw, what you expected. Please do not report security
 problems in public issues; see [SECURITY.md](SECURITY.md).

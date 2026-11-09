@@ -18,9 +18,9 @@ gets fixes before 1.0.
 
 ## In scope
 
-- vocab-popup sending requests to anything but the configured AnkiConnect
+- Slipcard sending requests to anything but the configured AnkiConnect
   address, or sending card content anywhere else.
-- A way for another local process or a web page to make vocab-popup answer,
+- A way for another local process or a web page to make Slipcard answer,
   change or read cards through it.
 - The popup taking keyboard focus and so capturing keystrokes meant for
   another app (for example a password typed while it appears).

@@ -13,12 +13,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = NSImage(
-            systemSymbolName: "character.book.closed", accessibilityDescription: "vocab-popup")
+            systemSymbolName: "character.book.closed", accessibilityDescription: "Slipcard")
         let menu = NSMenu()
         menu.addItem(withTitle: "Next word now", action: #selector(showNow), keyEquivalent: "")
         menu.addItem(withTitle: "Next word in 5 s", action: #selector(showSoon), keyEquivalent: "")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit vocab-popup", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Slipcard", action: #selector(quit), keyEquivalent: "q")
         for menuItem in menu.items { menuItem.target = self }
         item.menu = menu
         statusItem = item

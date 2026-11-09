@@ -1,11 +1,11 @@
 name: Bug
-description: vocab-popup does something other than the documentation says.
+description: Slipcard does something other than the documentation says.
 labels: [bug]
 body:
   - type: input
     id: version
     attributes:
-      label: vocab-popup version
+      label: Slipcard version
       description: The version in the tray menu's About, or the commit you built.
     validations:
       required: true

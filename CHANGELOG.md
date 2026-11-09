@@ -7,3 +7,4 @@ All notable changes are listed here. The format follows
 ## Unreleased
 
 - Project set up: license (Apache-2.0), contributor documentation.
+- Renamed from vocab-popup to Slipcard.

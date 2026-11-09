@@ -1,11 +1,11 @@
 # Architecture
 
-vocab-popup is two small native apps, one per platform, that share a design
+Slipcard is two small native apps, one per platform, that share a design
 and a protocol, not code. Each one has a tray icon, a timer, a popup and an
 AnkiConnect client.
 
 ```
-   ┌──────────── vocab-popup (per platform) ────────────┐
+   ┌────────────── Slipcard (per platform) ──────────────┐
    │                                                     │
    │  tray / menu bar ──► scheduler ──► popup window     │
    │   pause, quiet hours,   timer,      word → Show →   │
@@ -29,7 +29,7 @@ cross-platform toolkits hide or do not expose:
 - **macOS.** An `NSPanel` with `.nonactivatingPanel`, a floating window level
   and the collection behaviour `canJoinAllSpaces` + `fullScreenAuxiliary`
   appears over a full-screen app on the current Space and does not activate
-  vocab-popup, so the frontmost app keeps keyboard focus. The app is an
+  Slipcard, so the frontmost app keeps keyboard focus. The app is an
   accessory (`LSUIElement`): a menu bar item, no Dock icon.
 - **Linux, COSMIC (Wayland).** The popup is a
   [layer-shell](https://wayland.app/protocols/wlr-layer-shell-unstable-v1)
@@ -65,10 +65,10 @@ before anything is built around it.
 - **Tray / menu bar.** Pause for an hour, quiet hours, "next word now",
   interval, quit; shows the connection state.
 
-## What vocab-popup does not do
+## What Slipcard does not do
 
 No own spaced-repetition algorithm, no own sync, no card storage, no card
-editor. Anki is the database and the scheduler; vocab-popup is one more place
+editor. Anki is the database and the scheduler; Slipcard is one more place
 to review. This keeps the apps small and keeps reviews consistent with
 AnkiWeb, AnkiDroid and AnkiMobile.
 

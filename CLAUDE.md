@@ -1,8 +1,8 @@
-# vocab-popup
+# Slipcard
 
 Guidance for AI coding agents (and a concise orientation for humans).
 
-vocab-popup (working name) shows Anki vocabulary cards in a popup on a timer:
+Slipcard shows Anki vocabulary cards in a popup on a timer:
 a tray / menu bar icon, and every N minutes a card appears in the middle of
 the screen, on top of everything and without taking focus. The user reveals
 the answer and grades it (Again / Hard / Good / Easy) or lets the popup close
@@ -71,7 +71,10 @@ decides the Linux popup.
 
 ## Where to read more
 
-`README.md` describes the app; design and development notes go to `docs/`.
+- `README.md`: what the app does and how to build it.
+- `docs/architecture.md`: how the pieces fit on each platform.
+- `docs/development.md`: building, testing and the workflow.
+- `CONTRIBUTING.md`: how to contribute.
 
 ## Language
 

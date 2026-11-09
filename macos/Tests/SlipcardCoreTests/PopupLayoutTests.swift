@@ -1,6 +1,6 @@
 import CoreGraphics
 import Testing
-import VocabPopupCore
+import SlipcardCore
 
 @Suite struct PopupLayoutTests {
     @Test func centresInVisibleFrame() {

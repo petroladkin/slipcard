@@ -8,7 +8,7 @@ pub enum Mode {
     Run { show_after: u32 },
 }
 
-pub const USAGE: &str = "usage: vocab-popup [--show-after SECONDS] | --check";
+pub const USAGE: &str = "usage: slipcard [--show-after SECONDS] | --check";
 
 pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Mode, String> {
     let mut show_after = 0;

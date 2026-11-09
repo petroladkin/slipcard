@@ -1,4 +1,4 @@
-# vocab-popup
+# Slipcard
 
 Anki vocabulary cards in a timed popup from the tray: on top of full-screen
 apps, never tiled, never stealing focus. Pop!_OS and macOS.
@@ -16,14 +16,14 @@ the usual ways to get a card in front of you fail on a working desktop:
   show over full-screen apps on macOS;
 - a window that takes keyboard focus eats whatever you were typing.
 
-vocab-popup shows one card every N minutes in the middle of the screen, on top
+Slipcard shows one card every N minutes in the middle of the screen, on top
 of everything and without taking focus. You reveal the answer and grade it
 (Again / Hard / Good / Easy), or ignore it and the popup closes itself after a
 countdown; closing is not an answer, so the card stays due.
 
 ## How it works
 
-Anki stays the source of cards and the scheduler. vocab-popup talks to a
+Anki stays the source of cards and the scheduler. Slipcard talks to a
 running Anki through the [AnkiConnect](https://foosoft.net/projects/anki-connect/)
 add-on: it asks for due cards, shows one, and sends your grade back. AnkiWeb
 sync, the mobile apps and the review schedule keep working as before.
@@ -62,5 +62,5 @@ privately, see [SECURITY.md](SECURITY.md). Everyone taking part follows the
 ## License
 
 [Apache License 2.0](LICENSE). Anki and AnkiConnect are separate projects with
-their own licenses; vocab-popup only talks to them over AnkiConnect's local
+their own licenses; Slipcard only talks to them over AnkiConnect's local
 HTTP API and does not include their code.

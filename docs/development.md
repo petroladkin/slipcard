@@ -1,6 +1,6 @@
 # Development
 
-How to build, run and test vocab-popup on each platform.
+How to build, run and test Slipcard on each platform.
 
 ## Anki and AnkiConnect (all platforms)
 
@@ -35,7 +35,7 @@ swift test           # unit tests, no display needed
 ```
 
 `swift run` starts the app as a menu bar item (a book icon, no Dock icon);
-"Quit vocab-popup" in its menu stops it. `swift run VocabPopup --show-after 5`
+"Quit Slipcard" in its menu stops it. `swift run Slipcard --show-after 5`
 also shows a popup five seconds after the start. To check the popup's window
 behaviour by hand:
 
@@ -87,8 +87,8 @@ cd linux
 export RUSTC=rustc-1.91
 cargo-1.91 build
 cargo-1.91 test                        # unit tests, no display needed
-target/debug/vocab-popup --check       # OS, desktop, session, layer-shell support
-target/debug/vocab-popup --show-after 5
+target/debug/slipcard --check          # OS, desktop, session, layer-shell support
+target/debug/slipcard --show-after 5
 ```
 
 While it runs, Enter in its terminal shows another popup; `q` and Enter, or
