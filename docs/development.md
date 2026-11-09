@@ -18,9 +18,44 @@ add-on:
    ```
 
 **Use a separate Anki profile for development** (File → Switch Profile →
-Add), with a small test deck. Grading cards from a test build changes their
+Add), named `Slipcard Test`. Grading cards from a test build changes their
 schedule, and you do not want that in your real collection. Switch back to
 your own profile when you are done.
+
+### The test deck
+
+`scripts/test-anki/test_deck.py` builds the test deck in a known state and
+reports it (Python 3.9+, standard library only):
+
+```sh
+export SLIPCARD_ANKI_URL=http://127.0.0.1:8765   # the default
+export SLIPCARD_ANKI_KEY=...                     # if AnkiConnect has an apiKey
+scripts/test-anki/test_deck.py reset    # delete and rebuild the deck "Slipcard Test"
+scripts/test-anki/test_deck.py status   # {"review_due": 8, "review_later": 4, "learning": 2, "new": 10}
+```
+
+It works only when the active profile is `Slipcard Test`: every command
+asks AnkiConnect for the active profile first and stops before anything else
+if it is another one. Integration tests follow the same rule. The tool's own
+tests need no Anki: `python3 -m unittest discover -s scripts/test-anki`.
+
+### A headless test Anki
+
+Instead of switching profiles in your desktop Anki, you can run a test Anki
+with no display on any Ubuntu 24.04 host (a VM or a container):
+
+```sh
+sudo ANKICONNECT_KEY=<a key of your choice> ANKICONNECT_BIND=0.0.0.0 \
+  scripts/test-anki/setup-headless-anki.sh
+```
+
+It installs Anki from PyPI (`aqt`, pinned in the script) into a venv of a
+user `anki`, creates the profile `Slipcard Test` without the first-run
+dialogs, installs AnkiConnect with the API key, and runs Anki on Qt's
+offscreen platform as the systemd service `slipcard-test-anki`, which comes
+back after a reboot. `ANKICONNECT_BIND=0.0.0.0` makes it reachable from your
+machine (`SLIPCARD_ANKI_URL=http://<host>:8765`); requests without the key
+are refused. Keep a headless Anki like this for test profiles only.
 
 ## macOS
 
@@ -111,7 +146,8 @@ ordinary window instead, which the window manager may tile or focus.
 
 ## Before a pull request
 
-- The platform's build and tests pass.
+- The platform's build and tests pass; if you touched `scripts/test-anki/`,
+  `python3 -m unittest discover -s scripts/test-anki` passes too.
 - You checked the popup by hand on your desktop if you touched window code,
   and said in the pull request which OS, version and desktop you used.
 - Commits are signed off: `scripts/dco.sh origin/dev HEAD`.
