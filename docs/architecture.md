@@ -64,6 +64,11 @@ before anything is built around it.
   running, the tray shows it and no popup appears.
 - **Tray / menu bar.** Pause for an hour, quiet hours, "next word now",
   interval, quit; shows the connection state.
+- **Settings.** One JSON file with the same keys on every platform (see
+  [development.md](development.md#settings)): the AnkiConnect address and
+  key, the card search, the interval, the countdown and quiet hours. A
+  missing or invalid value falls back to its default; a file that is not
+  valid JSON is never overwritten. The tray writes back what it changes.
 
 ## What Slipcard does not do
 
