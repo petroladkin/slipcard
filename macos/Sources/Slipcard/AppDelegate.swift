@@ -135,11 +135,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func present(_ card: Card) {
         guard let client else { return }
         popup?.close()
-        let model = CardPopupModel(card: card, client: client)
+        let model = CardPopupModel(
+            card: card, client: client, countdownSeconds: settings.countdownSeconds, shownAt: Date())
         let panel = PopupPanel(model: model)
         panel.onClose = { [weak self] in
             guard let self else { return }
             self.popup = nil
+            if model.countdown.isExpired(at: Date()) {
+                NSLog("popup: card %lld closed by the countdown, not answered", card.id)
+            }
             self.flow.popupClosed(now: Date())
             NSLog("popup: closed; next at %@", "\(self.flow.nextFire.map { "\($0)" } ?? "-")")
             self.arm()

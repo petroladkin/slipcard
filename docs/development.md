@@ -165,6 +165,16 @@ above), with a settings file that points at it, for example
 5. Good closes the popup, and `test_deck.py status` shows one due card less.
    Close closes it without answering (the count stays).
 6. A long back wraps and ends with "…"; the popup stays on the screen.
+7. The countdown: without touching anything, the Close button counts down
+   from `countdownSeconds` ("Close (30)", "Close (29)" … once a second, 30 s
+   by default; set `"countdownSeconds": 10` to wait less) and the popup
+   closes at zero; `test_deck.py status` shows the same counts as before
+   (the card was not answered), and the log says "closed by the countdown,
+   not answered".
+8. A new popup, and move the pointer over it: the button reads "Close" at
+   once and the popup stays, also after the countdown would have ended. A
+   new popup again, and press Show: the same. A pointer that only rests
+   where the popup appears, without moving, does not stop the countdown.
 
 The app itself needs no permissions (Accessibility, notifications, Screen
 Recording).
@@ -236,6 +246,13 @@ profile's `ankiConnectUrl`, `ankiConnectKey` and
    `test_deck.py status` shows one due card less. Close closes it without
    answering.
 6. A long back wraps and ends with "…"; the popup stays on the screen.
+7. The countdown: without touching anything, the Close button counts down
+   from `countdownSeconds` once a second and the popup closes at zero; the
+   terminal prints `popup: card … closed by the countdown, not answered` and
+   `test_deck.py status` shows the same counts as before.
+8. A new popup, and move the pointer over it: the button reads "Close" at
+   once and the popup stays; the same after Show. A pointer that only rests
+   where the popup appears, without moving, does not stop the countdown.
 
 On a desktop without layer shell (GNOME, X11) the app warns and shows an
 ordinary window instead, which the window manager may tile or focus.

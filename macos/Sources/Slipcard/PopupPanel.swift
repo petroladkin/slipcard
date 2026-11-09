@@ -22,6 +22,8 @@ final class PopupPanel: NSPanel {
     private let gradeRow = NSStackView()
     private let stack = NSStackView()
     private var screenFrame: CGRect?
+    /// Ticks the Close button's countdown once a second while it runs.
+    private var countdownTimer: Timer?
 
     init(model: CardPopupModel) {
         self.model = model
@@ -46,6 +48,11 @@ final class PopupPanel: NSPanel {
         hasShadow = true
 
         contentView = makeContent()
+        // The pointer moving over the popup is a reaction: it stops the
+        // countdown. .activeAlways because this app is never active.
+        contentView?.addTrackingArea(NSTrackingArea(
+            rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self, userInfo: nil))
         model.onChange = { [weak self] in self?.render() }
         model.onClose = { [weak self] in self?.close() }
         render()
@@ -65,13 +72,40 @@ final class PopupPanel: NSPanel {
         // orderFrontRegardless, not makeKeyAndOrderFront: shown without
         // becoming key and without activating this app.
         orderFrontRegardless()
+        startCountdown()
     }
 
     override func close() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
         super.close()
         onClose?()
         onClose = nil
     }
+
+    /// One tick a second from the moment the countdown started, so the
+    /// title changes on whole seconds; at zero the model closes the popup.
+    private func startCountdown() {
+        let first = model.countdown.started.addingTimeInterval(1)
+        let timer = Timer(fire: first, interval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.model.tick(now: Date())
+                if self.model.countdown.isStopped || self.model.stage == .closed {
+                    self.countdownTimer?.invalidate()
+                    self.countdownTimer = nil
+                }
+                self.render()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        countdownTimer = timer
+    }
+
+    // Only movement counts: a pointer resting where the popup appears sends
+    // no mouseMoved, so it does not stop the countdown.
+    override func mouseMoved(with event: NSEvent) { model.pointerMoved() }
+    override func mouseEntered(with event: NSEvent) { model.pointerMoved() }
 
     /// Sizes the panel to its content (at least the PoC size) and centres
     /// it on its screen; PopupLayout shrinks it to the screen if needed.
@@ -93,6 +127,7 @@ final class PopupPanel: NSPanel {
         for button in gradeButtons { button.isEnabled = !model.isSending }
         errorLabel.stringValue = model.failure ?? ""
         errorLabel.isHidden = model.failure == nil
+        closeButton.title = model.closeLabel(at: Date())
         if isVisible { fit() }
     }
 
@@ -129,7 +164,7 @@ final class PopupPanel: NSPanel {
         showButton.bezelStyle = .rounded
         showButton.target = self
         showButton.action = #selector(reveal)
-        closeButton.title = "Close"
+        closeButton.title = model.closeLabel(at: Date())
         closeButton.bezelStyle = .rounded
         closeButton.target = self
         closeButton.action = #selector(closeClicked)

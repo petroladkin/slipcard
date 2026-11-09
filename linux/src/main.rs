@@ -15,6 +15,7 @@
 mod anki;
 mod args;
 mod card_text;
+mod countdown;
 mod flow;
 #[allow(dead_code)]
 mod scheduler;
@@ -170,6 +171,10 @@ fn now_secs() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
 }
 
+fn now_ms() -> i64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+}
+
 /// The local UTC offset at a Unix time, in seconds (quiet hours are local).
 fn local_utc_offset(t: i64) -> i64 {
     glib::DateTime::from_unix_local(t).map(|d| d.utc_offset().as_seconds()).unwrap_or(0)
@@ -181,6 +186,7 @@ struct App {
     flow: RefCell<PopupFlow>,
     client: anki::Client,
     query: String,
+    countdown_seconds: u32,
     timer: RefCell<Option<glib::SourceId>>,
 }
 
@@ -213,6 +219,7 @@ fn run(show_after: Option<u32>) -> glib::ExitCode {
             flow: RefCell::new(PopupFlow::new(scheduler)),
             client: anki::Client::from_settings(&settings),
             query: settings.card_query.clone(),
+            countdown_seconds: settings.countdown_seconds,
             timer: RefCell::new(None),
         });
         arm(&state);
@@ -317,6 +324,7 @@ struct Widgets {
     answer: gtk::Label,
     error: gtk::Label,
     show: gtk::Button,
+    close: gtk::Button,
     grades: gtk::Box,
     grade_buttons: Vec<gtk::Button>,
 }
@@ -330,6 +338,7 @@ fn render(w: &Widgets, m: &PopupModel) {
     }
     w.error.set_text(m.failure().unwrap_or(""));
     w.error.set_visible(m.failure().is_some());
+    w.close.set_label(&m.close_label(now_ms()));
 }
 
 fn label(text: &str, class: Option<&str>, lines: i32) -> gtk::Label {
@@ -365,7 +374,7 @@ fn present(state: &Rc<App>, card: anki::Card) {
     }
 
     let id = card.id;
-    let model = Rc::new(RefCell::new(PopupModel::new(card)));
+    let model = Rc::new(RefCell::new(PopupModel::new(card, state.countdown_seconds, now_ms())));
     let word = label(&model.borrow().front, Some("word"), 4);
     let answer = label(&model.borrow().back, None, 12);
     let error = label("", Some("error"), 3);
@@ -394,8 +403,44 @@ fn present(state: &Rc<App>, card: anki::Card) {
     content.append(&buttons);
     window.set_child(Some(&content));
 
-    let w = Rc::new(Widgets { window: window.clone(), answer, error, show: show.clone(), grades, grade_buttons });
+    let w = Rc::new(Widgets {
+        window: window.clone(),
+        answer,
+        error,
+        show: show.clone(),
+        close: close.clone(),
+        grades,
+        grade_buttons,
+    });
     render(&w, &model.borrow());
+
+    // The countdown: one tick a second; at zero the popup closes without an
+    // answer. Stops ticking once the user reacted or the popup is gone.
+    {
+        let (m, w) = (model.clone(), w.clone());
+        glib::timeout_add_local(Duration::from_secs(1), move || {
+            if m.borrow_mut().tick(now_ms()) {
+                println!("popup: card {id} closed by the countdown, not answered");
+                w.window.close();
+                return glib::ControlFlow::Break;
+            }
+            render(&w, &m.borrow());
+            let done = m.borrow().countdown().is_stopped() || m.borrow().stage() == &flow::Stage::Closed;
+            if done { glib::ControlFlow::Break } else { glib::ControlFlow::Continue }
+        });
+    }
+    // The pointer moving over the popup is a reaction: it stops the countdown.
+    // Only motion counts; a pointer resting where the popup appears does not.
+    {
+        let (m, w) = (model.clone(), w.clone());
+        let motion = gtk::EventControllerMotion::new();
+        motion.connect_motion(move |_, _, _| {
+            if m.borrow_mut().pointer_moved() {
+                render(&w, &m.borrow());
+            }
+        });
+        window.add_controller(motion);
+    }
 
     {
         let (m, w) = (model.clone(), w.clone());
