@@ -11,6 +11,9 @@
 //! Ctrl-C, quits.
 
 mod args;
+// Read now; the scheduler and the tray (next steps) use the rest of it.
+#[allow(dead_code)]
+mod settings;
 
 use std::io::BufRead;
 use std::sync::mpsc;
@@ -80,10 +83,42 @@ fn check() -> glib::ExitCode {
         }
         Err(err) => println!("gtk: could not open a display ({err})"),
     }
+    let (path, load) = load_settings();
+    println!("settings: {} ({})", path.display(), describe(&load.file));
+    for problem in &load.problems {
+        println!("settings: {problem}");
+    }
     glib::ExitCode::SUCCESS
 }
 
+fn load_settings() -> (std::path::PathBuf, settings::Load) {
+    let path = settings::default_path(|name| std::env::var(name).ok());
+    let load = settings::load(&path);
+    (path, load)
+}
+
+fn describe(file: &settings::File) -> String {
+    match file {
+        settings::File::Missing => "no file yet, using the defaults".into(),
+        settings::File::Valid => "read".into(),
+        settings::File::Invalid(reason) => format!("invalid: {reason}; using the defaults"),
+    }
+}
+
+/// Logs what reading the settings gave; the tray shows the same state later.
+fn log_settings(path: &std::path::Path, load: &settings::Load) {
+    match &load.file {
+        settings::File::Invalid(_) => eprintln!("settings: {}: {}", path.display(), describe(&load.file)),
+        _ => println!("settings: {}: {}", path.display(), describe(&load.file)),
+    }
+    for problem in &load.problems {
+        eprintln!("settings: {problem}");
+    }
+}
+
 fn run(show_after: u32) -> glib::ExitCode {
+    let (path, load) = load_settings();
+    log_settings(&path, &load);
     let app = gtk::Application::builder().application_id(APP_ID).build();
     app.connect_startup(|_| {
         let css = gtk::CssProvider::new();

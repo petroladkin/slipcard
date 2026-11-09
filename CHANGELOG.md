@@ -8,3 +8,4 @@ All notable changes are listed here. The format follows
 
 - Project set up: license (Apache-2.0), contributor documentation.
 - Renamed from vocab-popup to Slipcard.
+- Settings file (`settings.json`) shared by the macOS and Linux apps.

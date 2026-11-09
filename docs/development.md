@@ -57,6 +57,37 @@ back after a reboot. `ANKICONNECT_BIND=0.0.0.0` makes it reachable from your
 machine (`SLIPCARD_ANKI_URL=http://<host>:8765`); requests without the key
 are refused. Keep a headless Anki like this for test profiles only.
 
+## Settings
+
+Both apps read one JSON file at start:
+
+- macOS: `~/Library/Application Support/Slipcard/settings.json`
+- Linux: `$XDG_CONFIG_HOME/slipcard/settings.json`, or
+  `~/.config/slipcard/settings.json` when `XDG_CONFIG_HOME` is not set
+- `SLIPCARD_SETTINGS=<path>` overrides both, handy for development.
+
+Every key is optional; the file can be missing. All keys at their defaults:
+[`settings.example.json`](settings.example.json), which both test suites
+read, so the platforms cannot drift apart.
+
+| Key | Default | Valid values |
+|---|---|---|
+| `ankiConnectUrl` | `"http://127.0.0.1:8765"` | an `http://` or `https://` address |
+| `ankiConnectKey` | `null` | AnkiConnect's `apiKey`, or `null` / `""` for none |
+| `cardQuery` | `"is:due -is:suspended"` | an Anki search, e.g. `deck:"English" is:due -is:suspended` |
+| `intervalMinutes` | `15` | a whole number, 1 to 1440 |
+| `countdownSeconds` | `30` | a whole number, 5 to 600 |
+| `quietHoursEnabled` | `false` | `true` or `false` |
+| `quietHoursStart` | `"22:00"` | `"HH:MM"`, 24-hour clock |
+| `quietHoursEnd` | `"08:00"` | `"HH:MM"`; a range may cross midnight |
+
+A value of the wrong type or out of range is ignored with a line in the
+log, and its default is used. A file that is not a JSON object is reported
+(log, and the menu on macOS), the defaults are used, and Slipcard never
+writes over it, so a typo in a hand edit is not lost. When the app changes
+a setting it rewrites the file atomically and keeps every key it does not
+know. On Linux, `slipcard --check` prints the path and what was read.
+
 ## macOS
 
 Needs macOS 14 or newer and Xcode 16 or newer (Swift 6). The app is a Swift
