@@ -183,6 +183,9 @@ public final class AnkiConnectClient: Sendable {
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // AnkiConnect reads the key from the body; a proxy in front of an
+        // AnkiConnect-compatible server can check this header instead.
+        if let key { request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization") }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let data: Data

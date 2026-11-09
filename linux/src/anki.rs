@@ -153,11 +153,13 @@ impl Client {
         if let Some(key) = &self.key {
             body["key"] = Value::from(key.clone());
         }
-        let response = self
-            .agent
-            .post(&self.url)
-            .set("Content-Type", "application/json")
-            .send_string(&body.to_string());
+        let mut request = self.agent.post(&self.url).set("Content-Type", "application/json");
+        // AnkiConnect reads the key from the body; a proxy in front of an
+        // AnkiConnect-compatible server can check this header instead.
+        if let Some(key) = &self.key {
+            request = request.set("Authorization", &format!("Bearer {key}"));
+        }
+        let response = request.send_string(&body.to_string());
         let text = match response {
             Ok(r) => r.into_string().map_err(|e| transport_error(&e))?,
             Err(ureq::Error::Status(code, _)) => return Err(Error::BadResponse(format!("HTTP {code}"))),
@@ -248,6 +250,8 @@ mod tests {
     struct Stub {
         url: String,
         requests: Arc<Mutex<Vec<Value>>>,
+        /// The Authorization header of each request (None when absent).
+        authorizations: Arc<Mutex<Vec<Option<String>>>>,
         _listener: Option<TcpListener>,
     }
 
@@ -257,14 +261,17 @@ mod tests {
             let url = format!("http://{}", listener.local_addr().unwrap());
             let requests = Arc::new(Mutex::new(Vec::new()));
             if let Behaviour::Silent = behaviour {
-                return Stub { url, requests, _listener: Some(listener) };
+                return Stub { url, requests, authorizations: Arc::new(Mutex::new(Vec::new())), _listener: Some(listener) };
             }
             let log = requests.clone();
+            let authorizations = Arc::new(Mutex::new(Vec::new()));
+            let auth_log = authorizations.clone();
             std::thread::spawn(move || {
                 for stream in listener.incoming() {
                     let Ok(mut stream) = stream else { return };
                     let mut reader = BufReader::new(stream.try_clone().unwrap());
                     let mut length = 0;
+                    let mut authorization = None;
                     loop {
                         let mut line = String::new();
                         if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
@@ -273,12 +280,16 @@ mod tests {
                         if let Some(v) = line.to_lowercase().strip_prefix("content-length:") {
                             length = v.trim().parse().unwrap_or(0);
                         }
+                        if line.to_lowercase().starts_with("authorization:") {
+                            authorization = Some(line["authorization:".len()..].trim().to_string());
+                        }
                     }
                     let mut body = vec![0; length];
                     reader.read_exact(&mut body).unwrap();
                     let request: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
                     let action = request["action"].as_str().unwrap_or("").to_string();
                     log.lock().unwrap().push(request);
+                    auth_log.lock().unwrap().push(authorization);
                     let (status, payload) = match &behaviour {
                         Behaviour::Status(code) => (*code, String::new()),
                         Behaviour::Respond(replies) => (
@@ -296,7 +307,7 @@ mod tests {
                     );
                 }
             });
-            Stub { url, requests, _listener: None }
+            Stub { url, requests, authorizations, _listener: None }
         }
 
         fn actions(&self) -> Vec<String> {
@@ -415,6 +426,14 @@ mod tests {
         assert_eq!(stub.request(0)["key"], "k");
         assert_eq!(stub.request(1).get("key"), None);
         assert_eq!(stub.request(0)["version"], 6);
+    }
+
+    #[test]
+    fn key_is_also_sent_as_a_bearer_header() {
+        let stub = recorded_stub();
+        client(&stub, Some("k")).active_profile().unwrap();
+        client(&stub, None).active_profile().unwrap();
+        assert_eq!(*stub.authorizations.lock().unwrap(), [Some("Bearer k".to_string()), None]);
     }
 
     #[test]

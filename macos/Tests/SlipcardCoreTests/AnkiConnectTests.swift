@@ -117,6 +117,13 @@ func recorded(_ name: String) throws -> Data {
         #expect(server.requests.allSatisfy { ($0["version"] as? Int) == 6 })
     }
 
+    @Test func keyIsAlsoSentAsABearerHeader() async throws {
+        let server = try recordedServer()
+        _ = try await client(server, key: "k").activeProfile()
+        _ = try await client(server, key: nil).activeProfile()
+        #expect(server.authorizations == ["Bearer k", nil])
+    }
+
     @Test func clientFromSettings() throws {
         var s = Settings.defaults
         s.ankiConnectKey = "k"

@@ -112,7 +112,7 @@ read, so the platforms cannot drift apart.
 | Key | Default | Valid values |
 |---|---|---|
 | `ankiConnectUrl` | `"http://127.0.0.1:8765"` | an `http://` or `https://` address |
-| `ankiConnectKey` | `null` | AnkiConnect's `apiKey`, or `null` / `""` for none |
+| `ankiConnectKey` | `null` | AnkiConnect's `apiKey`, or `null` / `""` for none; sent in the request body, as AnkiConnect expects, and also as `Authorization: Bearer <key>` for a proxy in front of an AnkiConnect-compatible server that has no key of its own |
 | `cardQuery` | `"is:due -is:suspended"` | an Anki search, e.g. `deck:"English" is:due -is:suspended` |
 | `intervalMinutes` | `15` | a whole number, 1 to 1440 |
 | `countdownSeconds` | `30` | a whole number, 5 to 600 |
