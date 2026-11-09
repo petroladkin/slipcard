@@ -54,6 +54,24 @@ struct AnkiConnectIntegrationTests {
         await #expect(throws: AnkiConnectError.wrongKey) { try await wrong.activeProfile() }
     }
 
+    /// The popup's own path: the model the buttons call, with the real client.
+    @MainActor @Test func gradeThroughThePopupModelIsRecorded() async throws {
+        let client = try await guardedClient()
+        let card = try #require(try await client.nextDueCard(query: "\(Self.deck) is:review is:due"))
+        let before = try await reviews(of: card.id, client)
+        let model = CardPopupModel(card: card, client: client)
+        var closed = false
+        model.onClose = { closed = true }
+        #expect(!model.front.isEmpty && !model.front.contains("<"))
+        model.reveal()
+        await model.grade(.easy)
+        #expect(closed)
+        #expect(model.stage == .closed)
+        let after = try await reviews(of: card.id, client)
+        #expect(after.count == before.count + 1)
+        #expect((after.last?["ease"] as? NSNumber)?.intValue == 4)
+    }
+
     func reviews(of id: Int64, _ client: AnkiConnectClient) async throws -> [[String: Any]] {
         let result = try await client.call("getReviewsOfCards", ["cards": [String(id)]]) as? [String: Any]
         return result?[String(id)] as? [[String: Any]] ?? []

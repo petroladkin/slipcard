@@ -11,3 +11,4 @@ All notable changes are listed here. The format follows
 - Settings file (`settings.json`) shared by the macOS and Linux apps.
 - AnkiConnect client on both platforms: the next due card, answering it, and a state for every kind of failure; `--next-card` prints what a popup would show.
 - Scheduler on both platforms: the interval without stacking, pause for an hour, quiet hours across midnight, next word now, and no burst of popups after sleep.
+- The popup shows the next due card from Anki (front, Show, back) and sends Again / Hard / Good / Easy.
