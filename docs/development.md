@@ -175,9 +175,33 @@ above), with a settings file that points at it, for example
    once and the popup stays, also after the countdown would have ended. A
    new popup again, and press Show: the same. A pointer that only rests
    where the popup appears, without moving, does not stop the countdown.
+9. The menu bar item: its menu shows the state first ("Connected to Anki",
+   "10 cards due" right after a reset), then Next word now, Next word in 5 s,
+   Pause for an hour, Quiet hours 22:00–08:00, Interval (5, 10, 15, 30,
+   60 min, the current one checked), Open settings file, Quit Slipcard.
+10. Pause for an hour: the menu reads "Paused until HH:MM" and offers Resume;
+    no popup comes; Resume puts Pause back.
+11. Quiet hours on (inside the range, or with a range set around now in the
+    file): "Quiet hours until HH:MM"; the item is checked; off again.
+12. Interval → 30 min: the check moves, and the settings file now says
+    `"intervalMinutes": 30` (keys you added by hand are still there); quit
+    and start the app again: still 30 min.
+13. Open settings file opens it in the default editor (and creates it with
+    the settings in effect if it was missing).
+14. Stop Anki (or point the file at a dead port and restart): the icon greys
+    out and the menu says "Anki is not running or not reachable"; start
+    Anki and open the menu again: it is back to normal.
+15. A broken settings file (a stray comma) and a restart: the menu starts
+    with "Settings file is invalid: using the defaults"; changing the
+    interval then says "Not saved: the settings file is invalid" and leaves
+    the file as it was.
 
 The app itself needs no permissions (Accessibility, notifications, Screen
 Recording).
+
+`Slipcard --tray-action interval:30` (or `quiet-hours`) runs a settings
+action of the menu the same way the menu does and exits, for scripts and
+tests: exit status 0 saved, 2 applied but not saved, 1 nothing to do.
 
 ## Linux (Pop!_OS 24.04, COSMIC)
 
@@ -253,6 +277,24 @@ profile's `ankiConnectUrl`, `ankiConnectKey` and
 8. A new popup, and move the pointer over it: the button reads "Close" at
    once and the popup stays; the same after Show. A pointer that only rests
    where the popup appears, without moving, does not stop the countdown.
+9. The tray: COSMIC's status area shows the Slipcard icon (a dictionary;
+   the terminal says `tray: not available …` if the desktop has no
+   StatusNotifierItem host). A click opens the menu: the state first
+   ("Connected to Anki", "10 cards due" after a reset), then Next word now,
+   Next word in 5 s, Pause for an hour, Quiet hours 22:00–08:00, Interval
+   (5, 10, 15, 30, 60 min, the current one checked), Open settings file,
+   Quit Slipcard; hovering the icon shows the state as a tooltip.
+10. Pause, Resume, Quiet hours and Interval as on macOS (steps 10–12 there):
+    the state lines follow, the terminal prints `tray: …`, the interval and
+    the quiet-hours switch land in the settings file and survive a restart.
+11. Open settings file opens it in the default text editor.
+12. Stop Anki (or a dead port): the icon becomes the "offline" icon and the
+    menu says "Anki is not running or not reachable"; back when Anki is.
+13. A broken settings file: "Settings file is invalid: using the defaults"
+    first in the menu; a change says "Not saved: …" and leaves the file.
+
+`slipcard --tray-action interval:30` (or `quiet-hours`) runs a settings
+action of the tray the same way the tray does and exits.
 
 On a desktop without layer shell (GNOME, X11) the app warns and shows an
 ordinary window instead, which the window manager may tile or focus.

@@ -60,6 +60,31 @@ public struct PopupFlow: Sendable {
     public mutating func didWake(now: Date) {
         scheduler.didWake(now: now)
     }
+
+    // MARK: the tray
+
+    public mutating func pauseForAnHour(now: Date) { scheduler.pauseForAnHour(now: now) }
+
+    public mutating func resume(now: Date) { scheduler.resume(now: now) }
+
+    /// New interval or quiet hours from the tray; the wait restarts.
+    public mutating func apply(_ settings: Settings, now: Date) { scheduler.apply(settings, now: now) }
+
+    /// A check outside a popup fetch (the tray's due count) learnt the state.
+    public mutating func connectionChecked(_ error: (any Error)?) {
+        anki = error.map(AnkiState.init) ?? .connected
+    }
+
+    /// What the tray shows at `now`.
+    public func trayState(
+        now: Date, dueCount: Int?, settings: Settings, settingsWarning: String?, saveProblem: String?
+    ) -> TrayState {
+        TrayState(
+            anki: anki, dueCount: dueCount,
+            pausedUntil: scheduler.isPaused(now: now) ? scheduler.pausedUntil : nil,
+            quietUntil: scheduler.isQuiet(now) ? scheduler.quietEnd(after: now) : nil,
+            settingsWarning: settingsWarning, saveProblem: saveProblem, settings: settings)
+    }
 }
 
 /// The card popup's state, apart from the window: what to show and what the

@@ -7,8 +7,10 @@
 //!   slipcard --show-after 5     also one word 5 s after the start
 //!   slipcard --check            print the OS, desktop and layer-shell support
 //!   slipcard --next-card        print the card a popup would show now, and exit
+//!   slipcard --tray-action interval:30   run a settings action of the tray, and exit
 //!
-//! While it runs, Enter in the terminal is "next word now"; q and Enter, or
+//! While it runs, the tray (a StatusNotifierItem) has the controls and the
+//! state; Enter in the terminal is also "next word now"; q and Enter, or
 //! Ctrl-C, quits.
 
 #[allow(dead_code)]
@@ -19,9 +21,10 @@ mod countdown;
 mod flow;
 #[allow(dead_code)]
 mod scheduler;
-// The tray (next steps) uses the rest of it.
 #[allow(dead_code)]
 mod settings;
+mod tray;
+mod tray_menu;
 
 use std::cell::{Cell, RefCell};
 use std::io::BufRead;
@@ -45,6 +48,7 @@ const CSS: &str = "
 enum Command {
     Show,
     Quit,
+    Tray(tray::Event),
 }
 
 fn main() -> glib::ExitCode {
@@ -58,6 +62,7 @@ fn main() -> glib::ExitCode {
     match mode {
         args::Mode::Check => check(),
         args::Mode::NextCard => next_card(),
+        args::Mode::TrayAction(name) => tray_action(&name),
         args::Mode::Run { show_after } => run(show_after),
     }
 }
@@ -117,9 +122,21 @@ fn next_card() -> glib::ExitCode {
     let s = &load.settings;
     let key = if s.anki_connect_key.is_some() { "key set" } else { "no key" };
     println!("anki: {} ({key}), search: {}", s.anki_connect_url, s.card_query);
-    match anki::Client::from_settings(s).next_due_card(&s.card_query) {
-        Ok(Some(card)) => {
+    let tray_line = |anki: anki::State, due: Option<usize>| {
+        let state = tray_menu::TrayState {
+            anki,
+            due_count: due,
+            settings_warning: tray_menu::settings_warning(&load.file),
+            settings: s.clone(),
+            ..tray_menu::TrayState::default()
+        };
+        let menu = tray_menu::TrayMenu::new(&state, local_utc_offset);
+        println!("tray: {} (icon dimmed: {})", menu.state_lines.join(" | "), menu.icon_dimmed);
+    };
+    match anki::Client::from_settings(s).due_cards(&s.card_query) {
+        Ok((Some(card), due)) => {
             println!("state: {}", anki::State::Connected);
+            tray_line(anki::State::Connected, Some(due));
             println!(
                 "next card: {}, queue {}, due {}, grades {:?}",
                 card.id, card.queue, card.due, card.next_reviews
@@ -129,14 +146,44 @@ fn next_card() -> glib::ExitCode {
             println!("back (raw): {}", card.answer_html.chars().take(120).collect::<String>());
             glib::ExitCode::SUCCESS
         }
-        Ok(None) => {
+        Ok((None, due)) => {
             println!("state: {}", anki::State::Connected);
+            tray_line(anki::State::Connected, Some(due));
             println!("next card: none due");
             glib::ExitCode::from(3)
         }
         Err(e) => {
             println!("state: {} ({e:?})", anki::State::Failed(e.clone()));
+            tray_line(anki::State::Failed(e), None);
             glib::ExitCode::FAILURE
+        }
+    }
+}
+
+/// Runs a settings action of the tray the way the tray does
+/// (tray_menu::perform) and exits; no window, no tray. Exit status: 0 saved,
+/// 2 applied but not saved, 1 not a settings action or nothing changed.
+fn tray_action(name: &str) -> glib::ExitCode {
+    let (path, load) = load_settings();
+    println!("settings: {} ({})", path.display(), describe(&load.file));
+    let Some(action) = tray_menu::Action::from_command_line(name) else {
+        println!("tray: not a settings action: {name} (interval:N or quiet-hours)");
+        return glib::ExitCode::FAILURE;
+    };
+    let Some(change) = tray_menu::perform(action, &load.settings, &path) else {
+        println!("tray: {name} changes nothing");
+        return glib::ExitCode::FAILURE;
+    };
+    let quiet = if change.settings.quiet_hours_enabled { "on" } else { "off" };
+    println!("tray: interval {} min, quiet hours {quiet}", change.settings.interval_minutes);
+    match change.save_problem {
+        None => {
+            println!("tray: saved");
+            glib::ExitCode::SUCCESS
+        }
+        Some(problem) => {
+            println!("{problem}");
+            glib::ExitCode::from(2)
         }
     }
 }
@@ -188,11 +235,18 @@ struct App {
     query: String,
     countdown_seconds: u32,
     timer: RefCell<Option<glib::SourceId>>,
+    settings: RefCell<settings::Settings>,
+    settings_path: std::path::PathBuf,
+    settings_warning: Option<String>,
+    save_problem: RefCell<Option<String>>,
+    due_count: Cell<Option<usize>>,
+    tray: RefCell<Option<ksni::blocking::Handle<tray::Tray>>>,
 }
 
 fn run(show_after: Option<u32>) -> glib::ExitCode {
     let (path, load) = load_settings();
     log_settings(&path, &load);
+    let warning = tray_menu::settings_warning(&load.file);
     let settings = load.settings;
     let app = gtk::Application::builder().application_id(APP_ID).build();
     app.connect_startup(|_| {
@@ -221,6 +275,12 @@ fn run(show_after: Option<u32>) -> glib::ExitCode {
             query: settings.card_query.clone(),
             countdown_seconds: settings.countdown_seconds,
             timer: RefCell::new(None),
+            settings: RefCell::new(settings.clone()),
+            settings_path: path.clone(),
+            settings_warning: warning.clone(),
+            save_problem: RefCell::new(None),
+            due_count: Cell::new(None),
+            tray: RefCell::new(None),
         });
         arm(&state);
         println!(
@@ -230,6 +290,12 @@ fn run(show_after: Option<u32>) -> glib::ExitCode {
         );
 
         let (tx, rx) = mpsc::channel();
+        let to_main = tx.clone();
+        let menu = tray_menu::TrayMenu::new(&tray_state(&state), local_utc_offset);
+        *state.tray.borrow_mut() = tray::spawn(menu, Box::new(move |e| {
+            let _ = to_main.send(Command::Tray(e));
+        }));
+        refresh_due_count(&state);
         std::thread::spawn(move || {
             for line in std::io::stdin().lock().lines() {
                 let Ok(line) = line else { break };
@@ -241,10 +307,12 @@ fn run(show_after: Option<u32>) -> glib::ExitCode {
         });
         let for_commands = state.clone();
         glib::timeout_add_local(Duration::from_millis(100), move || {
-            match rx.try_recv() {
-                Ok(Command::Show) => next_word_now(&for_commands),
-                Ok(Command::Quit) => for_commands.app.quit(),
-                Err(_) => {}
+            while let Ok(command) = rx.try_recv() {
+                match command {
+                    Command::Show => next_word_now(&for_commands),
+                    Command::Quit => for_commands.app.quit(),
+                    Command::Tray(event) => tray_event(&for_commands, event),
+                }
             }
             glib::ControlFlow::Continue
         });
@@ -257,6 +325,106 @@ fn run(show_after: Option<u32>) -> glib::ExitCode {
     });
     // Options are parsed above; GApplication gets none of them.
     app.run_with_args(&["slipcard"])
+}
+
+/// What the tray shows now.
+fn tray_state(state: &App) -> tray_menu::TrayState {
+    state.flow.borrow().tray_state(
+        now_secs(),
+        state.due_count.get(),
+        &state.settings.borrow(),
+        state.settings_warning.clone(),
+        state.save_problem.borrow().clone(),
+    )
+}
+
+/// The tray is rebuilt from the model whenever the state changes.
+fn update_tray(state: &Rc<App>) {
+    let Some(handle) = state.tray.borrow().clone() else { return };
+    let menu = tray_menu::TrayMenu::new(&tray_state(state), local_utc_offset);
+    handle.update(move |t| t.menu = menu);
+}
+
+/// The due count for the tray (one findCards on a worker thread); it also
+/// tells whether Anki answers.
+fn refresh_due_count(state: &Rc<App>) {
+    let (client, query, state) = (state.client.clone(), state.query.clone(), state.clone());
+    glib::spawn_future_local(async move {
+        let result = gio::spawn_blocking(move || client.due_count(&query))
+            .await
+            .unwrap_or_else(|_| Err(anki::Error::BadResponse("the worker thread panicked".into())));
+        let before = state.flow.borrow().anki().clone();
+        match result {
+            Ok(n) => {
+                state.due_count.set(Some(n));
+                state.flow.borrow_mut().connection_checked(None);
+            }
+            Err(e) => state.flow.borrow_mut().connection_checked(Some(e)),
+        }
+        let after = state.flow.borrow().anki().clone();
+        if after != before {
+            println!("anki: {after}");
+        }
+        update_tray(&state);
+    });
+}
+
+fn tray_event(state: &Rc<App>, event: tray::Event) {
+    use tray_menu::Action;
+    let action = match event {
+        tray::Event::MenuOpened => {
+            refresh_due_count(state);
+            return;
+        }
+        tray::Event::Action(a) => a,
+    };
+    match action {
+        Action::NextWordNow => next_word_now(state),
+        Action::NextWordSoon => {
+            let s = state.clone();
+            glib::timeout_add_seconds_local_once(5, move || next_word_now(&s));
+        }
+        Action::Pause => {
+            state.flow.borrow_mut().pause_for_an_hour(now_secs());
+            println!("tray: paused for an hour");
+            arm(state);
+        }
+        Action::Resume => {
+            state.flow.borrow_mut().resume(now_secs());
+            println!("tray: resumed");
+            arm(state);
+        }
+        Action::ToggleQuietHours | Action::SetInterval(_) => {
+            let change = tray_menu::perform(action, &state.settings.borrow(), &state.settings_path);
+            if let Some(c) = change {
+                state.flow.borrow_mut().apply(&c.settings, now_secs());
+                let quiet = if c.settings.quiet_hours_enabled { "on" } else { "off" };
+                let saved = c.save_problem.clone().unwrap_or_else(|| "saved".into());
+                println!("tray: interval {} min, quiet hours {quiet}; {saved}", c.settings.interval_minutes);
+                *state.save_problem.borrow_mut() = c.save_problem;
+                *state.settings.borrow_mut() = c.settings;
+                arm(state);
+            }
+        }
+        Action::OpenSettings => open_settings_file(state),
+        Action::Quit => state.app.quit(),
+    }
+    update_tray(state);
+}
+
+/// Opens the file in the default editor; a missing file is created first
+/// with the settings in effect.
+fn open_settings_file(state: &App) {
+    let path = &state.settings_path;
+    if !path.exists() {
+        if let Err(e) = settings::save(&state.settings.borrow(), path) {
+            eprintln!("settings: cannot create {}: {e}", path.display());
+        }
+    }
+    let uri = gio::File::for_path(path).uri();
+    if let Err(e) = gio::AppInfo::launch_default_for_uri(&uri, None::<&gio::AppLaunchContext>) {
+        eprintln!("settings: cannot open {}: {e}", path.display());
+    }
 }
 
 fn next_word_now(state: &Rc<App>) {
@@ -301,9 +469,13 @@ fn fetch(state: &Rc<App>) {
     let query = state.query.clone();
     let state = state.clone();
     glib::spawn_future_local(async move {
-        let result = gio::spawn_blocking(move || client.next_due_card(&query))
+        let result = gio::spawn_blocking(move || client.due_cards(&query))
             .await
             .unwrap_or_else(|_| Err(anki::Error::BadResponse("the worker thread panicked".into())));
+        let result = result.map(|(next, count)| {
+            state.due_count.set(Some(count));
+            next
+        });
         let none_due = matches!(result, Ok(None));
         let before = state.flow.borrow().anki().clone();
         let step = state.flow.borrow_mut().fetched(result, now_secs());
@@ -314,6 +486,7 @@ fn fetch(state: &Rc<App>) {
         if none_due {
             println!("popup: no card due for {}", state.query);
         }
+        update_tray(&state);
         perform(&state, step);
     });
 }
@@ -489,6 +662,7 @@ fn present(state: &Rc<App>, card: anki::Card) {
                 for_close.flow.borrow().next_fire().map_or(0, |f| f - now_secs())
             );
             arm(&for_close);
+            refresh_due_count(&for_close);
         }
         glib::Propagation::Proceed
     });

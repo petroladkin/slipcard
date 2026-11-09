@@ -138,6 +138,11 @@ impl Scheduler {
         self.paused_until.is_some_and(|p| now < p)
     }
 
+    /// When the pause running at `now` ends; None when none runs.
+    pub fn paused_until(&self, now: i64) -> Option<i64> {
+        self.paused_until.filter(|&p| now < p)
+    }
+
     /// "Next word now": true unless a popup is already on screen.
     pub fn next_word_now(&mut self, _now: i64) -> bool {
         if self.phase == Phase::Showing {

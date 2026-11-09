@@ -123,10 +123,24 @@ impl Client {
 
     /// The card to show next for `query` (an Anki search), or None when none is due.
     pub fn next_due_card(&self, query: &str) -> Result<Option<Card>, Error> {
-        let ids = match self.call("findCards", json!({ "query": query }))? {
-            Value::Array(ids) if ids.iter().all(Value::is_i64) => ids,
-            _ => return Err(Error::BadResponse("findCards: not a list of card ids".into())),
-        };
+        self.due_cards(query).map(|(next, _)| next)
+    }
+
+    /// How many cards match `query`, for the tray (one `findCards`).
+    pub fn due_count(&self, query: &str) -> Result<usize, Error> {
+        self.find_cards(query).map(|ids| ids.len())
+    }
+
+    fn find_cards(&self, query: &str) -> Result<Vec<Value>, Error> {
+        match self.call("findCards", json!({ "query": query }))? {
+            Value::Array(ids) if ids.iter().all(Value::is_i64) => Ok(ids),
+            _ => Err(Error::BadResponse("findCards: not a list of card ids".into())),
+        }
+    }
+
+    /// The card to show next and how many match `query`.
+    pub fn due_cards(&self, query: &str) -> Result<(Option<Card>, usize), Error> {
+        let ids = self.find_cards(query)?;
         let mut cards = Vec::new();
         for chunk in ids.chunks(100) {
             match self.call("cardsInfo", json!({ "cards": chunk }))? {
@@ -134,7 +148,7 @@ impl Client {
                 _ => return Err(Error::BadResponse("cardsInfo: not a list of cards".into())),
             }
         }
-        Ok(sorted(cards).into_iter().next())
+        Ok((sorted(cards).into_iter().next(), ids.len()))
     }
 
     /// Records a review of `card_id` with `ease`; Anki schedules it.
@@ -426,6 +440,17 @@ mod tests {
         assert_eq!(stub.request(0)["key"], "k");
         assert_eq!(stub.request(1).get("key"), None);
         assert_eq!(stub.request(0)["version"], 6);
+    }
+
+    #[test]
+    fn due_cards_gives_the_next_card_and_the_count() {
+        let stub = recorded_stub();
+        let c = client(&stub, None);
+        let (next, count) = c.due_cards("is:due").unwrap();
+        assert_eq!(count, 3);
+        assert_eq!(next.unwrap().queue, 1);
+        assert_eq!(c.due_count("is:due"), Ok(3));
+        assert_eq!(stub.actions(), ["findCards", "cardsInfo", "findCards"]);
     }
 
     #[test]
