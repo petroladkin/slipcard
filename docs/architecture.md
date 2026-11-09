@@ -49,7 +49,18 @@ before anything is built around it.
 
 - **Scheduler.** Fires every N minutes (default 15), skips quiet hours and
   pauses, and never stacks popups: the next interval starts when the current
-  popup closes. Plain logic with no window-system dependency, unit tested.
+  popup closes. Plain logic with no window-system dependency, unit tested:
+  the app passes the time to every call and arms one timer at the time the
+  scheduler names. The rules, the same on both platforms:
+  - the first popup comes one interval after the start;
+  - pause for an hour: nothing until the hour is over, then the first popup
+    one interval after the pause ends; Resume ends the pause at once;
+  - quiet hours (local time, the range may cross midnight, the end
+    excluded): a popup due inside the range comes at its end;
+  - "next word now" shows a popup at once, even during a pause or quiet
+    hours, but never a second one while a popup is on screen;
+  - after sleep or a long absence (the timer fires more than a minute late)
+    no missed popup is shown: the next one comes one interval after wake.
 - **Popup.** Shows the front of a card; Show reveals the back (translation,
   example); four grade buttons. A countdown ("Close (30)") closes it if
   nobody reacts. Closing is not an answer. Clicking the popup is the only way
