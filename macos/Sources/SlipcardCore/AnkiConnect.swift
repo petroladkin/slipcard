@@ -140,9 +140,24 @@ public final class AnkiConnectClient: Sendable {
     /// The card to show next for `query` (an Anki search), or nil when none
     /// is due.
     public func nextDueCard(query: String) async throws -> Card? {
+        try await dueCards(query: query).next
+    }
+
+    /// How many cards match `query`, for the tray (one `findCards`).
+    public func dueCount(query: String) async throws -> Int {
+        try await findCards(query).count
+    }
+
+    private func findCards(_ query: String) async throws -> [NSNumber] {
         guard let ids = try await call("findCards", ["query": query]) as? [NSNumber] else {
             throw AnkiConnectError.badResponse("findCards: not a list of card ids")
         }
+        return ids
+    }
+
+    /// The card to show next and how many match `query`.
+    public func dueCards(query: String) async throws -> (next: Card?, count: Int) {
+        let ids = try await findCards(query)
         var cards: [Card] = []
         for start in stride(from: 0, to: ids.count, by: 100) {
             let chunk = Array(ids[start..<min(start + 100, ids.count)])
@@ -151,7 +166,7 @@ public final class AnkiConnectClient: Sendable {
             }
             cards += infos.compactMap(Self.card)
         }
-        return CardOrder.sorted(cards).first
+        return (CardOrder.sorted(cards).first, ids.count)
     }
 
     /// Records a review of `cardID` with `ease`; Anki schedules it.

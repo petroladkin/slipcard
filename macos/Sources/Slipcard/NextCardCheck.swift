@@ -17,8 +17,11 @@ func nextCardCheck() async -> Int32 {
     }
     print("anki: \(s.ankiConnectURL) (\(s.ankiConnectKey == nil ? "no key" : "key set")), search: \(s.cardQuery)")
     do {
-        let card = try await client.nextDueCard(query: s.cardQuery)
+        let due = try await client.dueCards(query: s.cardQuery)
+        let card = due.next
         print("state: \(AnkiState.connected)")
+        let tray = TrayMenu(TrayState(anki: .connected, dueCount: due.count, settingsWarning: load.menuWarning, settings: s))
+        print("tray: \(tray.stateLines.joined(separator: " | ")) (icon dimmed: \(tray.iconDimmed))")
         guard let card else {
             print("next card: none due")
             return 3
@@ -29,6 +32,8 @@ func nextCardCheck() async -> Int32 {
         return 0
     } catch {
         print("state: \(AnkiState(error)) (\(error))")
+        let tray = TrayMenu(TrayState(anki: AnkiState(error), settingsWarning: load.menuWarning, settings: s))
+        print("tray: \(tray.stateLines.joined(separator: " | ")) (icon dimmed: \(tray.iconDimmed))")
         return 1
     }
 }

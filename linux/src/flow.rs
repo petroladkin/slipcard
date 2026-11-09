@@ -7,6 +7,8 @@ use crate::anki::{self, Card, Ease, State};
 use crate::card_text::plain;
 use crate::countdown::Countdown;
 use crate::scheduler::Scheduler;
+use crate::settings::Settings;
+use crate::tray_menu::TrayState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Step {
@@ -73,6 +75,46 @@ impl PopupFlow {
     #[allow(dead_code)]
     pub fn did_wake(&mut self, now: i64) {
         self.scheduler.did_wake(now);
+    }
+
+    // The tray.
+
+    pub fn pause_for_an_hour(&mut self, now: i64) {
+        self.scheduler.pause_for_an_hour(now);
+    }
+
+    pub fn resume(&mut self, now: i64) {
+        self.scheduler.resume(now);
+    }
+
+    /// New interval or quiet hours from the tray; the wait restarts.
+    pub fn apply(&mut self, settings: &Settings, now: i64) {
+        self.scheduler.apply(settings, now);
+    }
+
+    /// A check outside a popup fetch (the tray's due count) learnt the state.
+    pub fn connection_checked(&mut self, error: Option<anki::Error>) {
+        self.anki = error.map_or(State::Connected, State::Failed);
+    }
+
+    /// What the tray shows at `now`.
+    pub fn tray_state(
+        &self,
+        now: i64,
+        due_count: Option<usize>,
+        settings: &Settings,
+        settings_warning: Option<String>,
+        save_problem: Option<String>,
+    ) -> TrayState {
+        TrayState {
+            anki: self.anki.clone(),
+            due_count,
+            paused_until: self.scheduler.paused_until(now),
+            quiet_until: self.scheduler.is_quiet(now).then(|| self.scheduler.quiet_end_after(now)),
+            settings_warning,
+            save_problem,
+            settings: settings.clone(),
+        }
     }
 }
 
@@ -228,6 +270,51 @@ mod tests {
 
     fn flow() -> PopupFlow {
         PopupFlow::new(Scheduler::new(&Settings::default(), START, Box::new(|_| 0)))
+    }
+
+    /// 2026-11-10 10:00 UTC (12:00 at UTC+2).
+    const TEN: i64 = 1_794_304_800;
+
+    fn tray_menu(state: &TrayState) -> crate::tray_menu::TrayMenu {
+        crate::tray_menu::TrayMenu::new(state, |_| 7200)
+    }
+
+    #[test]
+    fn tray_state_follows_the_pause_and_resume() {
+        let s = Settings::default();
+        let mut f = PopupFlow::new(Scheduler::new(&s, TEN, Box::new(|_| 7200)));
+        f.pause_for_an_hour(TEN);
+        let paused = f.tray_state(TEN, Some(3), &s, None, None);
+        assert_eq!(paused.paused_until, Some(TEN + 3600));
+        assert_eq!(tray_menu(&paused).state_lines.last().unwrap(), "Paused until 13:00");
+        f.resume(TEN + 60);
+        assert_eq!(f.tray_state(TEN, Some(3), &s, None, None).paused_until, None);
+    }
+
+    #[test]
+    fn tray_state_shows_quiet_hours_only_inside_them() {
+        let s = Settings { quiet_hours_enabled: true, ..Settings::default() }; // 22:00-08:00 local, UTC+2
+        let f = PopupFlow::new(Scheduler::new(&s, TEN, Box::new(|_| 7200)));
+        let night = 1_794_272_400; // 01:00 UTC = 03:00 local
+        let state = f.tray_state(night, None, &s, None, None);
+        assert_eq!(tray_menu(&state).state_lines.last().unwrap(), "Quiet hours until 08:00");
+        assert_eq!(f.tray_state(TEN, None, &s, None, None).quiet_until, None);
+    }
+
+    #[test]
+    fn applying_new_settings_restarts_the_wait() {
+        let mut f = PopupFlow::new(Scheduler::new(&Settings::default(), TEN, Box::new(|_| 0)));
+        f.apply(&Settings { interval_minutes: 30, ..Settings::default() }, TEN + 600);
+        assert_eq!(f.next_fire(), Some(TEN + 600 + 1800));
+    }
+
+    #[test]
+    fn a_count_check_sets_the_connection_state() {
+        let mut f = flow();
+        f.connection_checked(None);
+        assert_eq!(*f.anki(), State::Connected);
+        f.connection_checked(Some(anki::Error::NotReachable("x".into())));
+        assert_eq!(*f.anki(), State::Failed(anki::Error::NotReachable("x".into())));
     }
 
     #[test]

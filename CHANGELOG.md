@@ -14,3 +14,4 @@ All notable changes are listed here. The format follows
 - The popup shows the next due card from Anki (front, Show, back) and sends Again / Hard / Good / Easy.
 - The Close button counts down (`countdownSeconds`) and closes the popup without an answer; moving the pointer over the popup or pressing Show stops it.
 - The AnkiConnect key is also sent as `Authorization: Bearer`, so a proxy can guard an AnkiConnect-compatible server.
+- Tray on both platforms (macOS menu bar item, Linux StatusNotifierItem): next word now, pause for an hour, quiet hours, interval (saved to the settings), open the settings file, quit; it shows the connection, the due cards, the pause, quiet hours and an invalid settings file, and the icon changes when Anki is not reachable.
