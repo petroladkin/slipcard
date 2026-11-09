@@ -140,18 +140,31 @@ swift test           # unit tests, no display needed
 ```
 
 `swift run` starts the app as a menu bar item (a book icon, no Dock icon);
-"Quit Slipcard" in its menu stops it. `swift run Slipcard --show-after 5`
-also shows a popup five seconds after the start. To check the popup's window
-behaviour by hand:
+"Quit Slipcard" in its menu stops it. It reads the settings, then shows a
+popup every `intervalMinutes` with the next due card from AnkiConnect; with
+no due card, or when Anki does not answer, no popup comes and the log says
+why. "Next word now" in the menu shows one at once, "Next word in 5 s" after
+five seconds, and `swift run Slipcard --show-after 5` five seconds after the
+start.
 
-1. Start the app, then put another app in full screen (green button) and start
-   typing in it.
+To check the popup by hand, against a test profile (see "The test deck"
+above), with a settings file that points at it, for example
+`SLIPCARD_SETTINGS=/tmp/slipcard-test.json` holding
+`{"ankiConnectUrl": "http://127.0.0.1:8765", "ankiConnectKey": null, "cardQuery": "deck:\"Slipcard Test\" is:due"}`:
+
+1. `scripts/test-anki/test_deck.py reset`, start the app, then put another
+   app in full screen (green button) and start typing in it.
 2. Trigger a popup: "Next word in 5 s" in the menu bar item gives you time to
    switch back to the full-screen app, or start the app with `--show-after 5`.
 3. The popup must appear in the middle of the screen over the full-screen app,
-   on the same Space, and your typing must keep going into the other app.
-4. Show and Close must work with a click, and the other app must stay in full
-   screen.
+   on the same Space, and your typing must keep going into the other app. It
+   shows the card's front in large type, as plain text (no HTML, no
+   `[sound:…]`).
+4. Show reveals the back (translation and example, line breaks kept) and the
+   Again / Hard / Good / Easy buttons; the other app stays in full screen.
+5. Good closes the popup, and `test_deck.py status` shows one due card less.
+   Close closes it without answering (the count stays).
+6. A long back wraps and ends with "…"; the popup stays on the screen.
 
 The app itself needs no permissions (Accessibility, notifications, Screen
 Recording).
@@ -196,20 +209,33 @@ target/debug/slipcard --check          # OS, desktop, session, layer-shell suppo
 target/debug/slipcard --show-after 5
 ```
 
-While it runs, Enter in its terminal shows another popup; `q` and Enter, or
-Ctrl-C, quits. There is no tray icon yet.
+It shows a popup every `intervalMinutes` with the next due card (the settings
+are in `$XDG_CONFIG_HOME/slipcard/settings.json`, see "Settings"). While it
+runs, Enter in its terminal is "next word now"; `q` and Enter, or Ctrl-C,
+quits. There is no tray icon yet.
 
-To check the popup's window behaviour by hand:
+To check the popup by hand, against a test profile (see "The test deck"
+above), with `SLIPCARD_SETTINGS` pointing at a settings file with that
+profile's `ankiConnectUrl`, `ankiConnectKey` and
+`"cardQuery": "deck:\"Slipcard Test\" is:due"`:
 
 1. Run `--check`: on COSMIC it must say `wayland` and
-   `layer shell supported by the compositor: true`.
+   `layer shell supported by the compositor: true`. Then
+   `scripts/test-anki/test_deck.py reset`.
 2. Start the app with `--show-after 5`, switch to an editor (maximised, or in
    full screen) and keep typing; auto-tiling may be on.
 3. The popup must appear in the middle of the screen above the editor, on an
    opaque background in the theme's colours, so the word stays readable over
    a busy window; no window may move or resize, and your typing must keep
-   going into the editor.
-4. Show and Close must work with a click; Close removes the popup.
+   going into the editor. It shows the card's front in large type, as plain
+   text.
+4. Show reveals the back (translation and example) and the Again / Hard /
+   Good / Easy buttons; clicking them must not move focus away from the
+   editor for typing afterwards.
+5. Good closes the popup and the terminal prints `popup: card … answered`;
+   `test_deck.py status` shows one due card less. Close closes it without
+   answering.
+6. A long back wraps and ends with "…"; the popup stays on the screen.
 
 On a desktop without layer shell (GNOME, X11) the app warns and shows an
 ordinary window instead, which the window manager may tile or focus.

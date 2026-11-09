@@ -6,14 +6,15 @@ pub enum Mode {
     Check,
     /// Print the card a popup would show now, or the connection state, and exit.
     NextCard,
-    /// Run, showing the first popup after this many seconds.
-    Run { show_after: u32 },
+    /// Run: a popup every interval; with `show_after`, also one word that
+    /// many seconds after the start.
+    Run { show_after: Option<u32> },
 }
 
 pub const USAGE: &str = "usage: slipcard [--show-after SECONDS] | --check | --next-card";
 
 pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Mode, String> {
-    let mut show_after = 0;
+    let mut show_after = None;
     let mut check = false;
     let mut next_card = false;
     let mut args = args.into_iter();
@@ -23,9 +24,11 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Mode, String> {
             "--next-card" => next_card = true,
             "--show-after" => {
                 let value = args.next().ok_or("--show-after needs a number of seconds")?;
-                show_after = value
-                    .parse()
-                    .map_err(|_| format!("--show-after: not a number of seconds: {value}"))?;
+                show_after = Some(
+                    value
+                        .parse()
+                        .map_err(|_| format!("--show-after: not a number of seconds: {value}"))?,
+                );
             }
             "-h" | "--help" => return Err(USAGE.to_string()),
             other => return Err(format!("unknown option: {other}\n{USAGE}")),
@@ -49,13 +52,13 @@ mod tests {
     }
 
     #[test]
-    fn no_options_shows_at_once() {
-        assert_eq!(parse_str(&[]), Ok(Mode::Run { show_after: 0 }));
+    fn no_options_waits_for_the_scheduler() {
+        assert_eq!(parse_str(&[]), Ok(Mode::Run { show_after: None }));
     }
 
     #[test]
     fn show_after_takes_seconds() {
-        assert_eq!(parse_str(&["--show-after", "5"]), Ok(Mode::Run { show_after: 5 }));
+        assert_eq!(parse_str(&["--show-after", "5"]), Ok(Mode::Run { show_after: Some(5) }));
     }
 
     #[test]

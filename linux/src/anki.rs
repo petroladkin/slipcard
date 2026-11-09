@@ -97,6 +97,7 @@ pub fn sorted(mut cards: Vec<Card>) -> Vec<Card> {
 
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(3);
 
+#[derive(Clone)]
 pub struct Client {
     pub url: String,
     pub key: Option<String>,

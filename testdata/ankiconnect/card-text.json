@@ -1,0 +1,54 @@
+{
+  "about": "Rendered question and answer of test-deck cards as cardsInfo returned them (recorded from the test Anki), with the plain text the popup must show. Read by the macOS and Linux tests.",
+  "samples": [
+    {
+      "note": "Basic, front to back",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>serendipity",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>serendipity\n\n<hr id=answer>\n\na happy accident<br><i>Finding this café was pure serendipity.</i>",
+      "front": "serendipity",
+      "back": "a happy accident\nFinding this café was pure serendipity."
+    },
+    {
+      "note": "the reversed card of the same note",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>a happy accident<br><i>Finding this café was pure serendipity.</i>",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>a happy accident<br><i>Finding this café was pure serendipity.</i>\n\n<hr id=answer>\n\nserendipity",
+      "front": "a happy accident\nFinding this café was pure serendipity.",
+      "back": "serendipity"
+    },
+    {
+      "note": "bold front, a <div> on the back",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style><b>reluctant</b>",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style><b>reluctant</b>\n\n<hr id=answer>\n\nnot willing to do something<div><i>He was reluctant to leave.</i></div>",
+      "front": "reluctant",
+      "back": "not willing to do something\nHe was reluctant to leave."
+    },
+    {
+      "note": "an entity on the front",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>&quot;brisk&quot; walk",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>&quot;brisk&quot; walk\n\n<hr id=answer>\n\nquick and energetic<br><i>We went for a brisk walk.</i>",
+      "front": "\"brisk\" walk",
+      "back": "quick and energetic\nWe went for a brisk walk."
+    },
+    {
+      "note": "a sound tag (Anki renders it as [anki:play:q:0])",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>lucid [anki:play:q:0]",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>lucid [anki:play:q:0]\n\n<hr id=answer>\n\nclear and easy to understand<br><i>A lucid explanation.</i>",
+      "front": "lucid",
+      "back": "clear and easy to understand\nA lucid explanation."
+    },
+    {
+      "note": "an image on the back",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>verbose",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>verbose\n\n<hr id=answer>\n\nusing more words than needed<br><img src=\"verbose.png\"><br><i>The manual is verbose.</i>",
+      "front": "verbose",
+      "back": "using more words than needed\nThe manual is verbose."
+    },
+    {
+      "note": "an image on the reversed front",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>using more words than needed<br><img src=\"verbose.png\"><br><i>The manual is verbose.</i>",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>using more words than needed<br><img src=\"verbose.png\"><br><i>The manual is verbose.</i>\n\n<hr id=answer>\n\nverbose",
+      "front": "using more words than needed\nThe manual is verbose.",
+      "back": "verbose"
+    }
+  ]
+}
