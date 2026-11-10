@@ -1,0 +1,18 @@
+# HTTPS for Slipcard's Anki server (the compose's tls profile).
+# ANKI_TLS_NAME: a name whose A record points at this host; the certificate
+# comes from Let's Encrypt by a DNS-01 challenge with CF_API_TOKEN (a
+# Cloudflare API token allowed to edit that zone's DNS), so the host needs no
+# open port 80 and may stay inside a private network.
+{$ANKI_TLS_NAME} {
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+	}
+
+	handle /mcp* {
+		reverse_proxy anki:3141
+	}
+
+	handle {
+		reverse_proxy anki:8765
+	}
+}

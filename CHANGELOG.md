@@ -16,3 +16,4 @@ All notable changes are listed here. The format follows
 - The AnkiConnect key is also sent as `Authorization: Bearer`, so a proxy can guard an AnkiConnect-compatible server.
 - Daily use: `scripts/macos-bundle.sh` builds an ad-hoc signed `Slipcard.app` and installs it; `scripts/linux-install.sh` installs the binary and a desktop entry; "Start at login" in the tray on both.
 - Tray on both platforms (macOS menu bar item, Linux StatusNotifierItem): next word now, pause for an hour, quiet hours, interval (saved to the settings), open the settings file, quit; it shows the connection, the due cards, the pause, quiet hours and an invalid settings file, and the icon changes when Anki is not reachable.
+- An Anki server in Docker Compose (`server/`): a headless Anki with AnkiConnect and an MCP server on one collection, optional HTTPS through Caddy, restore and backup scripts; no API key or users, for a trusted network.
