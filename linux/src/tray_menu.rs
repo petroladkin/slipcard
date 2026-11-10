@@ -17,15 +17,20 @@ pub enum Action {
     ToggleQuietHours,
     SetInterval(u32),
     OpenSettings,
+    /// Starts Slipcard when the user logs in, or stops doing so.
+    ToggleStartAtLogin,
     Quit,
 }
 
 impl Action {
-    /// The actions that change the settings, by a name for the command line
-    /// (`--tray-action interval:30`, `--tray-action quiet-hours`).
+    /// The actions by a name for the command line (`--tray-action
+    /// interval:30`, `quiet-hours`, `start-at-login`).
     pub fn from_command_line(text: &str) -> Option<Action> {
         if text == "quiet-hours" {
             return Some(Action::ToggleQuietHours);
+        }
+        if text == "start-at-login" {
+            return Some(Action::ToggleStartAtLogin);
         }
         text.strip_prefix("interval:").and_then(|n| n.parse().ok()).map(Action::SetInterval)
     }
@@ -66,6 +71,19 @@ pub fn perform(action: Action, on: &Settings, file: &Path) -> Option<Change> {
     Some(Change { settings: changed, save_problem })
 }
 
+/// Whether Slipcard starts at login, as the system reports it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoginItem {
+    /// Not possible from this copy.
+    Unavailable,
+    Off,
+    On,
+    /// Registered, but the user has to allow it (macOS); kept for the same
+    /// model as TrayMenu.swift, never set on Linux.
+    #[allow(dead_code)]
+    NeedsApproval,
+}
+
 /// What the tray shows; the app fills it from the scheduler, the last fetch
 /// and the settings. Times are Unix seconds.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,6 +100,9 @@ pub struct TrayState {
     /// The last change from the tray could not be written.
     pub save_problem: Option<String>,
     pub settings: Settings,
+    pub start_at_login: LoginItem,
+    /// The last Start at login change failed.
+    pub login_problem: Option<String>,
 }
 
 impl Default for TrayState {
@@ -94,6 +115,8 @@ impl Default for TrayState {
             settings_warning: None,
             save_problem: None,
             settings: Settings::default(),
+            start_at_login: LoginItem::Unavailable,
+            login_problem: None,
         }
     }
 }
@@ -150,6 +173,7 @@ impl TrayMenu {
         let mut lines = Vec::new();
         lines.extend(state.settings_warning.clone());
         lines.extend(state.save_problem.clone());
+        lines.extend(state.login_problem.clone());
         lines.push(state.anki.to_string());
         if let (State::Connected, Some(n)) = (&state.anki, state.due_count) {
             lines.push(match n {
@@ -192,9 +216,21 @@ impl TrayMenu {
             Item::new("Interval", Kind::Submenu(interval)),
             Item::separator(),
             Item::new("Open settings file", Kind::Action(Action::OpenSettings)),
+            start_at_login_item(state.start_at_login),
             Item::new("Quit Slipcard", Kind::Action(Action::Quit)),
         ]);
         TrayMenu { items, icon_dimmed: matches!(state.anki, State::Failed(_)), state_lines: lines }
+    }
+}
+
+fn start_at_login_item(state: LoginItem) -> Item {
+    match state {
+        LoginItem::Unavailable => Item::new("Start at login: only from the installed app", Kind::Info),
+        LoginItem::Off => Item::new("Start at login", Kind::Toggle(Action::ToggleStartAtLogin, false)),
+        LoginItem::On => Item::new("Start at login", Kind::Toggle(Action::ToggleStartAtLogin, true)),
+        LoginItem::NeedsApproval => {
+            Item::new("Start at login: allow it in System Settings", Kind::Toggle(Action::ToggleStartAtLogin, true))
+        }
     }
 }
 
@@ -245,6 +281,49 @@ mod tests {
         assert_eq!(item(&m, "Next word now").unwrap().kind, Kind::Action(Action::NextWordNow));
         assert_eq!(item(&m, "Open settings file").unwrap().kind, Kind::Action(Action::OpenSettings));
         assert_eq!(item(&m, "Quit Slipcard").unwrap().kind, Kind::Action(Action::Quit));
+    }
+
+    // start at login
+
+    #[test]
+    fn start_at_login_is_a_switch_showing_its_state() {
+        let off = menu(&TrayState { start_at_login: LoginItem::Off, ..TrayState::default() });
+        let on = menu(&TrayState { start_at_login: LoginItem::On, ..TrayState::default() });
+        assert_eq!(item(&off, "Start at login").unwrap().kind, Kind::Toggle(Action::ToggleStartAtLogin, false));
+        assert_eq!(item(&on, "Start at login").unwrap().kind, Kind::Toggle(Action::ToggleStartAtLogin, true));
+        // It sits between Open settings file and Quit.
+        let titles: Vec<&str> = on.items.iter().map(|i| i.title.as_str()).collect();
+        let i = titles.iter().position(|t| *t == "Start at login").unwrap();
+        assert_eq!((titles[i - 1], titles[i + 1]), ("Open settings file", "Quit Slipcard"));
+    }
+
+    #[test]
+    fn start_at_login_needing_approval_says_so() {
+        let m = menu(&TrayState { start_at_login: LoginItem::NeedsApproval, ..TrayState::default() });
+        assert_eq!(
+            item(&m, "Start at login: allow it in System Settings").unwrap().kind,
+            Kind::Toggle(Action::ToggleStartAtLogin, true)
+        );
+    }
+
+    #[test]
+    fn start_at_login_outside_the_installed_app_is_only_a_line() {
+        let m = menu(&TrayState::default());
+        assert_eq!(item(&m, "Start at login: only from the installed app").unwrap().kind, Kind::Info);
+        assert!(item(&m, "Start at login").is_none());
+    }
+
+    #[test]
+    fn a_login_problem_is_a_state_line() {
+        let m = menu(&TrayState { anki: State::Connected, login_problem: Some("Start at login: no".into()), ..TrayState::default() });
+        assert_eq!(m.state_lines.first().map(String::as_str), Some("Start at login: no"));
+        assert_eq!(item(&m, "Start at login: no").unwrap().kind, Kind::Info);
+    }
+
+    #[test]
+    fn start_at_login_is_not_a_settings_change() {
+        assert_eq!(Action::from_command_line("start-at-login"), Some(Action::ToggleStartAtLogin));
+        assert_eq!(Action::ToggleStartAtLogin.applied(&Settings::default()), None);
     }
 
     #[test]

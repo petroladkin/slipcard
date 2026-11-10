@@ -299,6 +299,68 @@ action of the tray the same way the tray does and exits.
 On a desktop without layer shell (GNOME, X11) the app warns and shows an
 ordinary window instead, which the window manager may tile or focus.
 
+## Daily use
+
+How to run Slipcard every day, outside a terminal.
+
+### Anki
+
+Slipcard shows the cards of the Anki that its settings point at
+(`ankiConnectUrl`, `ankiConnectKey`):
+
+- **A local Anki** (the default, `http://127.0.0.1:8765`): Anki with the
+  AnkiConnect add-on has to be running. Let it start at login and leave it
+  open in the background; on macOS, System Settings → General → Login Items;
+  on COSMIC, its autostart settings or an entry in `~/.config/autostart`.
+- **An Anki on another host**, for example a headless one in the LAN: set
+  `ankiConnectUrl` to its address (`http://` in the LAN, `https://` behind a
+  proxy) and `ankiConnectKey` to its key. The key is sent in the body, as
+  AnkiConnect expects, and as `Authorization: Bearer`, which a proxy in front
+  of a server without a key of its own can check.
+
+### macOS
+
+```sh
+scripts/macos-bundle.sh --install            # build Slipcard.app, install into ~/Applications
+scripts/macos-bundle.sh --install --dest DIR # or into another folder
+```
+
+The script builds a release, assembles `Slipcard.app` (an accessory app: a
+menu bar item, no Dock icon; bundle id `io.github.petroladkin.Slipcard`, the
+version of `linux/Cargo.toml`, the commit count as the build number) and
+signs it ad hoc. It is not signed with a Developer ID nor notarized, so it
+is meant for the Mac it was built on; a copy downloaded from elsewhere would
+be blocked by Gatekeeper. Start it from Finder or Spotlight.
+
+At the first launch macOS asks whether Slipcard may find devices on the local
+network: allow it if AnkiConnect runs on another machine (it is not needed
+for a local Anki). The bundle allows plain http to local addresses
+(`NSAllowsLocalNetworking`); anything else needs https.
+
+"Start at login" in the menu bar item's menu registers the installed app with
+macOS (`SMAppService`); it is only offered in the installed app, not in a
+`swift run` build. If macOS asks for approval, the menu says so and opens
+System Settings → General → Login Items. The state is the system's, read each
+time the menu opens.
+
+### Linux
+
+```sh
+scripts/linux-install.sh                    # build, install into ~/.local
+scripts/linux-install.sh --prefix DIR       # or into DIR/bin and DIR/share/applications
+scripts/linux-install.sh --uninstall        # remove both files again
+```
+
+It builds a release (`cargo build --release --locked`; the first one takes a
+while) and installs `slipcard` and a desktop entry
+(`io.github.petroladkin.Slipcard.desktop`), so the COSMIC launcher lists
+Slipcard. With `CARGO=cargo-1.91` it uses that cargo instead of `cargo`.
+
+"Start at login" in the tray menu writes or removes the XDG autostart entry
+`$XDG_CONFIG_HOME/autostart/slipcard.desktop` (`~/.config/autostart/` by
+default) for the running binary; its presence is the state.
+`slipcard --tray-action start-at-login` switches it from the command line.
+
 ## Before a pull request
 
 - The platform's build and tests pass; if you touched `scripts/test-anki/`,

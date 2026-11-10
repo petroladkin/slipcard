@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var settingsURL = SettingsStore.defaultURL()
     private var settingsWarning: String?
     private var saveProblem: String?
+    private var loginProblem: String?
     private var client: AnkiConnectClient?
     private var flow = PopupFlow(scheduler: Scheduler(settings: .defaults, now: Date()))
     private var dueCount: Int?
@@ -72,9 +73,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// The menu is rebuilt from the model whenever the state changes.
     private func updateTray() {
         guard let statusItem, let menu = statusItem.menu else { return }
-        let state = flow.trayState(
+        var state = flow.trayState(
             now: Date(), dueCount: dueCount, settings: settings, settingsWarning: settingsWarning,
             saveProblem: saveProblem)
+        state.startAtLogin = StartAtLogin.state()
+        state.loginProblem = loginProblem
         let model = TrayMenu(state)
         menu.removeAllItems()
         for item in model.items { menu.addItem(menuItem(item)) }
@@ -141,6 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 settings.quietHoursEnabled ? "on" : "off", r.saveProblem.map { "; \($0)" } ?? "; saved")
             arm()
         case .openSettings: openSettingsFile()
+        case .toggleStartAtLogin: loginProblem = StartAtLogin.toggle()
         case .quit: NSApp.terminate(nil)
         }
         updateTray()

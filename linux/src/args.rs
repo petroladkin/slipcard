@@ -25,7 +25,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Mode, String> {
         match arg.as_str() {
             "--check" => check = true,
             "--next-card" => next_card = true,
-            "--tray-action" => tray_action = Some(args.next().ok_or("--tray-action needs interval:N or quiet-hours")?),
+            "--tray-action" => tray_action = Some(args.next().ok_or("--tray-action needs interval:N, quiet-hours or start-at-login")?),
             "--show-after" => {
                 let value = args.next().ok_or("--show-after needs a number of seconds")?;
                 show_after = Some(

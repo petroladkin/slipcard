@@ -10,12 +10,15 @@ public enum TrayAction: Equatable, Sendable {
     case toggleQuietHours
     case setInterval(minutes: Int)
     case openSettings
+    /// Starts Slipcard when the user logs in, or stops doing so.
+    case toggleStartAtLogin
     case quit
 
-    /// The actions that change the settings, by a name for the command line
-    /// (`--tray-action interval:30`, `--tray-action quiet-hours`).
+    /// The actions by a name for the command line (`--tray-action
+    /// interval:30`, `quiet-hours`, `start-at-login`).
     public init?(commandLine text: String) {
         if text == "quiet-hours" { self = .toggleQuietHours; return }
+        if text == "start-at-login" { self = .toggleStartAtLogin; return }
         if text.hasPrefix("interval:"), let n = Int(text.dropFirst("interval:".count)) {
             self = .setInterval(minutes: n)
             return
@@ -40,6 +43,28 @@ public enum TrayAction: Equatable, Sendable {
     }
 }
 
+/// Whether Slipcard starts at login, as the system reports it.
+public enum LoginItem: Equatable, Sendable {
+    /// Not possible from this copy (on macOS: not running as the installed
+    /// app bundle).
+    case unavailable
+    case off
+    case on
+    /// Registered, but the user has to allow it in System Settings.
+    case needsApproval
+
+    /// From `SMAppService.Status.rawValue`: 0 not registered, 1 enabled,
+    /// 2 requires approval, 3 not found.
+    public init(serviceStatus raw: Int) {
+        switch raw {
+        case 0: self = .off
+        case 1: self = .on
+        case 2: self = .needsApproval
+        default: self = .unavailable
+        }
+    }
+}
+
 /// What the tray shows; the app fills it from the scheduler, the last fetch
 /// and the settings.
 public struct TrayState: Equatable, Sendable {
@@ -55,12 +80,17 @@ public struct TrayState: Equatable, Sendable {
     /// The last change from the tray could not be written.
     public var saveProblem: String?
     public var settings: Settings
+    public var startAtLogin: LoginItem
+    /// The last Start at login change failed.
+    public var loginProblem: String?
 
     public init(
         anki: AnkiState = .unknown, dueCount: Int? = nil, pausedUntil: Date? = nil,
         quietUntil: Date? = nil, settingsWarning: String? = nil, saveProblem: String? = nil,
-        settings: Settings = .defaults
+        settings: Settings = .defaults, startAtLogin: LoginItem = .unavailable, loginProblem: String? = nil
     ) {
+        self.startAtLogin = startAtLogin
+        self.loginProblem = loginProblem
         self.anki = anki
         self.dueCount = dueCount
         self.pausedUntil = pausedUntil
@@ -109,6 +139,7 @@ public struct TrayMenu: Equatable, Sendable {
         var lines: [String] = []
         if let warning = state.settingsWarning { lines.append(warning) }
         if let problem = state.saveProblem { lines.append(problem) }
+        if let problem = state.loginProblem { lines.append(problem) }
         lines.append(state.anki.description)
         if state.anki == .connected, let n = state.dueCount {
             lines.append(n == 0 ? "No cards due" : n == 1 ? "1 card due" : "\(n) cards due")
@@ -136,9 +167,25 @@ public struct TrayMenu: Equatable, Sendable {
             Item(title: "Interval", kind: .submenu(interval)),
             .separator,
             Item(title: "Open settings file", kind: .action(.openSettings)),
+            Self.startAtLoginItem(state.startAtLogin),
             Item(title: "Quit Slipcard", kind: .action(.quit)),
         ]
         if case .failed = state.anki { iconDimmed = true } else { iconDimmed = false }
+    }
+
+    static func startAtLoginItem(_ state: LoginItem) -> Item {
+        switch state {
+        case .unavailable:
+            return Item(title: "Start at login: only from the installed app", kind: .info)
+        case .off:
+            return Item(title: "Start at login", kind: .toggle(.toggleStartAtLogin, checked: false))
+        case .on:
+            return Item(title: "Start at login", kind: .toggle(.toggleStartAtLogin, checked: true))
+        case .needsApproval:
+            return Item(
+                title: "Start at login: allow it in System Settings",
+                kind: .toggle(.toggleStartAtLogin, checked: true))
+        }
     }
 }
 
