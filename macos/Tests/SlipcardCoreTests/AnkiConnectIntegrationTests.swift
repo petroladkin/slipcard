@@ -47,9 +47,13 @@ struct AnkiConnectIntegrationTests {
         #expect(stillDue?.isEmpty == true)
     }
 
-    @Test func wrongKeyIsRefused() async throws {
+    /// Applies only to an AnkiConnect with an API key (the test Anki has one);
+    /// a server without a key, such as the one in `server/`, accepts any.
+    @Test(.enabled(
+        if: ProcessInfo.processInfo.environment["SLIPCARD_ANKI_KEY"] != nil,
+        "skipped: SLIPCARD_ANKI_KEY is not set, so the server has no key to refuse a wrong one"))
+    func wrongKeyIsRefused() async throws {
         _ = try await guardedClient()
-        try #require(env["SLIPCARD_ANKI_KEY"] != nil, "the test Anki has no API key")
         let wrong = try await guardedClient(key: "wrong")
         await #expect(throws: AnkiConnectError.wrongKey) { try await wrong.activeProfile() }
     }

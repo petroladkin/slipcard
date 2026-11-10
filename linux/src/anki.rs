@@ -572,9 +572,15 @@ mod tests {
 
         #[test]
         #[ignore = "needs the test Anki"]
+        // Applies only to an AnkiConnect with an API key (the test Anki has
+        // one); a server without a key, such as the one in server/, accepts
+        // any. Rust's test harness has no run-time skip: it says so and returns.
         fn wrong_key_is_refused() {
             let c = guarded();
-            assert!(c.key.is_some(), "the test Anki has no API key");
+            if c.key.is_none() {
+                eprintln!("skipped: SLIPCARD_ANKI_KEY is not set, so the server has no key to refuse a wrong one");
+                return;
+            }
             let wrong = Client::new(&c.url, Some("wrong".into()), DEFAULT_TIMEOUT);
             assert_eq!(wrong.active_profile(), Err(Error::WrongKey));
         }
