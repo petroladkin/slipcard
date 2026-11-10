@@ -94,6 +94,7 @@ AnkiWeb, AnkiDroid and AnkiMobile.
 macos/           Swift package: the macOS app
 linux/           GTK4 app (after the Linux proof of concept)
 server/          Docker Compose: a headless Anki with AnkiConnect and MCP (docs/server.md)
+claude-desktop/  Claude Desktop extension: a stdio bridge to the server's MCP
 docs/            this documentation
 scripts/         git hooks and repository checks
 ```
