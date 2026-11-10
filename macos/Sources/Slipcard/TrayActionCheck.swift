@@ -14,6 +14,12 @@ func trayActionCheck(_ name: String) -> Int32 {
         print("tray: not a settings action: \(name) (interval:N or quiet-hours)")
         return 1
     }
+    if action == .toggleStartAtLogin {
+        // Registering a login item is the user's choice in the installed
+        // app's menu; a command line run never does it.
+        print("tray: start at login is switched from the menu of the installed app")
+        return 1
+    }
     guard let r = TraySettingsChange.perform(action, on: load.settings, file: url) else {
         print("tray: \(name) changes nothing")
         return 1

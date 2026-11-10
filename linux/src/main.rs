@@ -16,6 +16,7 @@
 #[allow(dead_code)]
 mod anki;
 mod args;
+mod autostart;
 mod card_text;
 mod countdown;
 mod flow;
@@ -167,9 +168,16 @@ fn tray_action(name: &str) -> glib::ExitCode {
     let (path, load) = load_settings();
     println!("settings: {} ({})", path.display(), describe(&load.file));
     let Some(action) = tray_menu::Action::from_command_line(name) else {
-        println!("tray: not a settings action: {name} (interval:N or quiet-hours)");
+        println!("tray: not a settings action: {name} (interval:N, quiet-hours or start-at-login)");
         return glib::ExitCode::FAILURE;
     };
+    if action == tray_menu::Action::ToggleStartAtLogin {
+        let path = autostart::path(|name| std::env::var(name).ok());
+        return match toggle_start_at_login(&path) {
+            None => glib::ExitCode::SUCCESS,
+            Some(_) => glib::ExitCode::from(2),
+        };
+    }
     let Some(change) = tray_menu::perform(action, &load.settings, &path) else {
         println!("tray: {name} changes nothing");
         return glib::ExitCode::FAILURE;
@@ -241,6 +249,9 @@ struct App {
     save_problem: RefCell<Option<String>>,
     due_count: Cell<Option<usize>>,
     tray: RefCell<Option<ksni::blocking::Handle<tray::Tray>>>,
+    /// The XDG autostart entry: its presence is "Start at login".
+    autostart_path: std::path::PathBuf,
+    login_problem: RefCell<Option<String>>,
 }
 
 fn run(show_after: Option<u32>) -> glib::ExitCode {
@@ -281,6 +292,8 @@ fn run(show_after: Option<u32>) -> glib::ExitCode {
             save_problem: RefCell::new(None),
             due_count: Cell::new(None),
             tray: RefCell::new(None),
+            autostart_path: autostart::path(|name| std::env::var(name).ok()),
+            login_problem: RefCell::new(None),
         });
         arm(&state);
         println!(
@@ -329,13 +342,39 @@ fn run(show_after: Option<u32>) -> glib::ExitCode {
 
 /// What the tray shows now.
 fn tray_state(state: &App) -> tray_menu::TrayState {
-    state.flow.borrow().tray_state(
+    let mut t = state.flow.borrow().tray_state(
         now_secs(),
         state.due_count.get(),
         &state.settings.borrow(),
         state.settings_warning.clone(),
         state.save_problem.borrow().clone(),
-    )
+    );
+    t.start_at_login = login_item(&state.autostart_path);
+    t.login_problem = state.login_problem.borrow().clone();
+    t
+}
+
+fn login_item(path: &std::path::Path) -> tray_menu::LoginItem {
+    if autostart::is_enabled(path) { tray_menu::LoginItem::On } else { tray_menu::LoginItem::Off }
+}
+
+/// Turns Start at login on or off for the running binary; the problem for
+/// the tray, or None.
+fn toggle_start_at_login(path: &std::path::Path) -> Option<String> {
+    let exec = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => return Some(format!("Start at login: cannot find this program: {e}")),
+    };
+    match autostart::toggle(path, &exec) {
+        Ok(on) => {
+            println!("tray: start at login {} ({})", if on { "on" } else { "off" }, path.display());
+            None
+        }
+        Err(problem) => {
+            eprintln!("tray: {problem}");
+            Some(problem)
+        }
+    }
 }
 
 /// The tray is rebuilt from the model whenever the state changes.
@@ -407,6 +446,9 @@ fn tray_event(state: &Rc<App>, event: tray::Event) {
             }
         }
         Action::OpenSettings => open_settings_file(state),
+        Action::ToggleStartAtLogin => {
+            *state.login_problem.borrow_mut() = toggle_start_at_login(&state.autostart_path);
+        }
         Action::Quit => state.app.quit(),
     }
     update_tray(state);

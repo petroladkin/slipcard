@@ -114,6 +114,7 @@ impl PopupFlow {
             settings_warning,
             save_problem,
             settings: settings.clone(),
+            ..TrayState::default()
         }
     }
 }

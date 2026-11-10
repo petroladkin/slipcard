@@ -133,6 +133,7 @@ mod tests {
                 "Interval >",
                 "-",
                 "Open settings file",
+                "Start at login: only from the installed app",
                 "Quit Slipcard",
             ]
         );

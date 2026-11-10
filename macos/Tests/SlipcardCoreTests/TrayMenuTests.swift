@@ -34,6 +34,46 @@ import Testing
         #expect(item(m, "Quit Slipcard")?.kind == .action(.quit))
     }
 
+    // MARK: start at login
+
+    @Test func startAtLoginIsASwitchShowingItsState() {
+        #expect(item(menu(TrayState(startAtLogin: .off)), "Start at login")?.kind
+            == .toggle(.toggleStartAtLogin, checked: false))
+        #expect(item(menu(TrayState(startAtLogin: .on)), "Start at login")?.kind
+            == .toggle(.toggleStartAtLogin, checked: true))
+        // It sits between Open settings file and Quit.
+        let titles = menu(TrayState(startAtLogin: .on)).items.map(\.title)
+        let i = titles.firstIndex(of: "Start at login")!
+        #expect(titles[i - 1] == "Open settings file" && titles[i + 1] == "Quit Slipcard")
+    }
+
+    @Test func startAtLoginNeedingApprovalSaysSo() {
+        #expect(item(menu(TrayState(startAtLogin: .needsApproval)), "Start at login: allow it in System Settings")?.kind
+            == .toggle(.toggleStartAtLogin, checked: true))
+    }
+
+    @Test func startAtLoginOutsideTheInstalledAppIsOnlyALine() {
+        let m = menu(TrayState())
+        #expect(item(m, "Start at login: only from the installed app")?.kind == .info)
+        #expect(item(m, "Start at login") == nil)
+    }
+
+    @Test func aLoginProblemIsAStateLine() {
+        let m = menu(TrayState(anki: .connected, loginProblem: "Start at login: no"))
+        #expect(m.stateLines.first == "Start at login: no")
+        #expect(item(m, "Start at login: no")?.kind == .info)
+    }
+
+    @Test func loginItemFollowsTheServiceStatus() {
+        // SMAppService.Status: notRegistered 0, enabled 1, requiresApproval 2, notFound 3.
+        #expect([0, 1, 2, 3, 9].map(LoginItem.init(serviceStatus:)) == [.off, .on, .needsApproval, .unavailable, .unavailable])
+    }
+
+    @Test func startAtLoginIsNotASettingsChange() {
+        #expect(TrayAction(commandLine: "start-at-login") == .toggleStartAtLogin)
+        #expect(TrayAction.toggleStartAtLogin.applied(to: .defaults) == nil)
+    }
+
     @Test func pauseBecomesResumeWhilePaused() {
         let paused = menu(TrayState(pausedUntil: ten))
         #expect(item(paused, "Resume")?.kind == .action(.resume))
