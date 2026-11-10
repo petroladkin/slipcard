@@ -99,8 +99,9 @@ Settings apply at the next start (`docker compose up -d`).
   [development.md](development.md#settings).
 - **Claude Code**: `claude mcp add --transport http anki http://192.0.2.10:3141/mcp/`
   (or `https://<name>/mcp/`).
-- **Claude Desktop**: the Slipcard extension, which asks for the address
-  when it is installed.
+- **Claude Desktop**: the extension in `claude-desktop/`, which asks for the
+  MCP address (`http://192.0.2.10:3141/mcp/`) when it is installed; see
+  [claude-desktop/README.md](../claude-desktop/README.md).
 
 ## HTTPS (the `tls` profile)
 

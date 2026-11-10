@@ -1,0 +1,47 @@
+{
+  "manifest_version": "0.3",
+  "name": "slipcard-anki",
+  "display_name": "Slipcard Anki server",
+  "version": "0.0.0",
+  "description": "Use the Anki collection on your Slipcard Anki server from Claude: decks, notes, cards and reviews, through the server's MCP.",
+  "long_description": "Connects Claude Desktop to the MCP server of a [Slipcard](https://github.com/petroladkin/slipcard) Anki server on your network (docs/server.md). The extension asks for the server's MCP address when it is installed, for example `http://192.0.2.10:3141/mcp/` or `https://anki.example.com/mcp/`, and passes Claude's requests to it. The server has no API key: install this only for a server on a network you trust.",
+  "author": {
+    "name": "Petro Ladkin",
+    "url": "https://github.com/petroladkin"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/petroladkin/slipcard"
+  },
+  "homepage": "https://github.com/petroladkin/slipcard",
+  "documentation": "https://github.com/petroladkin/slipcard/blob/dev/docs/server.md",
+  "support": "https://github.com/petroladkin/slipcard/issues",
+  "license": "Apache-2.0",
+  "keywords": ["anki", "flashcards", "vocabulary", "slipcard", "mcp"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/bridge.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/bridge.js"],
+      "env": {
+        "SLIPCARD_MCP_URL": "${user_config.server_url}"
+      }
+    }
+  },
+  "tools_generated": true,
+  "user_config": {
+    "server_url": {
+      "type": "string",
+      "title": "Anki server MCP address",
+      "description": "The MCP address of your Slipcard Anki server, ending in /mcp/: for example http://192.0.2.10:3141/mcp/ (plain HTTP in your network) or https://anki.example.com/mcp/ (with the server's HTTPS).",
+      "required": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}
