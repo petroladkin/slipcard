@@ -31,6 +31,11 @@ sync, the mobile apps and the review schedule keep working as before.
 Each platform has its own native app; there is no cross-platform UI toolkit.
 See [docs/architecture.md](docs/architecture.md).
 
+Anki can also run on a server instead of on your computer: `server/` has a
+Docker Compose setup with a headless Anki that serves AnkiConnect to
+Slipcard and an MCP server to AI assistants, for a network you trust. See
+[docs/server.md](docs/server.md).
+
 | Platform | App | Popup |
 |---|---|---|
 | macOS 14+ | Swift, `macos/` | non-activating `NSPanel` on all Spaces, over full-screen apps |

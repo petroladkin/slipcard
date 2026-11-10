@@ -312,9 +312,10 @@ Slipcard shows the cards of the Anki that its settings point at
   AnkiConnect add-on has to be running. Let it start at login and leave it
   open in the background; on macOS, System Settings → General → Login Items;
   on COSMIC, its autostart settings or an entry in `~/.config/autostart`.
-- **An Anki on another host**, for example a headless one in the LAN: set
-  `ankiConnectUrl` to its address (`http://` in the LAN, `https://` behind a
-  proxy) and `ankiConnectKey` to its key. The key is sent in the body, as
+- **An Anki on another host**, for example a headless one in the LAN (the
+  server in `server/`, see [server.md](server.md)): set `ankiConnectUrl` to
+  its address (`http://` in the LAN, `https://` behind a proxy) and
+  `ankiConnectKey` to its key, if it has one. The key is sent in the body, as
   AnkiConnect expects, and as `Authorization: Bearer`, which a proxy in front
   of a server without a key of its own can check.
 

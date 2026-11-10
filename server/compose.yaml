@@ -1,0 +1,63 @@
+# Slipcard's Anki server: one headless Anki that serves AnkiConnect (for
+# Slipcard) and an MCP server (for AI assistants) on one collection.
+#
+#   cp .env.example .env     # then set ANKI_SERVER_HOSTS
+#   docker compose up -d --build
+#   docker compose --profile tls up -d --build   # with the HTTPS proxy
+#
+# No API key and no users: anyone who reaches these ports can read and change
+# the collection. Keep it on a network you trust. See docs/server.md.
+name: slipcard-anki
+
+services:
+  anki:
+    build: .
+    image: slipcard-anki:local
+    restart: unless-stopped
+    environment:
+      ANKI_PROFILE: ${ANKI_PROFILE:-User 1}
+      ANKI_SERVER_HOSTS: ${ANKI_SERVER_HOSTS:-}
+      ANKI_TLS_NAME: ${ANKI_TLS_NAME:-}
+    volumes:
+      # The profile with the collection and Anki's own backups, and the
+      # add-ons' settings.
+      - ${ANKI_DATA_DIR:-./data}:/data
+    ports:
+      - "${ANKI_BIND:-0.0.0.0}:8765:8765" # AnkiConnect
+      - "${ANKI_BIND:-0.0.0.0}:3141:3141" # MCP (Streamable HTTP) at /mcp/
+      # VNC has no password and shows Anki's whole window: this host only by
+      # default; reach it through an SSH tunnel.
+      - "${VNC_BIND:-127.0.0.1}:5900:5900"
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-d", '{"action":"version","version":6}', "http://127.0.0.1:8765"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+  # Optional HTTPS in front of both, with a Let's Encrypt certificate by a
+  # DNS-01 challenge through Cloudflare: AnkiConnect at https://<name>/, the
+  # MCP server at https://<name>/mcp/. Encryption only; there is still no key.
+  # Caddy reaches Anki inside the compose network, so with it set ANKI_BIND
+  # to 127.0.0.1 and nothing bypasses HTTPS.
+  caddy:
+    profiles: ["tls"]
+    # Caddy 2.11.9 with the Cloudflare DNS module.
+    image: ghcr.io/caddybuilds/caddy-cloudflare:2@sha256:17505a5e55432764957953787b065f400a1f1a0c280c3b4da2c99ce4746708d6
+    restart: unless-stopped
+    depends_on:
+      - anki
+    environment:
+      ANKI_TLS_NAME: ${ANKI_TLS_NAME:-}
+      CF_API_TOKEN: ${CF_API_TOKEN:-}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${TLS_BIND:-0.0.0.0}:443:443"
+
+volumes:
+  caddy_data:
+  caddy_config:
