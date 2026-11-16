@@ -110,15 +110,26 @@ stay inside a private network:
 
 1. A name in a Cloudflare zone, with an A record to the server's address
    (DNS only, not proxied), for example `anki.example.com`.
-2. A Cloudflare API token that may edit that zone's DNS (Zone → DNS → Edit).
+2. A Cloudflare API token (a custom token) with two permissions, Zone →
+   DNS → Edit and Zone → Zone → Read, limited to that zone (Zone Resources:
+   Include, Specific zone). Without Zone → Read Caddy cannot find the zone.
    On the server, `server/set-token.sh` asks for it without echo and writes
-   it into `.env` (mode 600).
+   it into `.env` (mode 600). Nothing shows while you paste, so paste once.
 3. In `.env`: `ANKI_TLS_NAME=anki.example.com`, and `ANKI_BIND=127.0.0.1`
    so nothing reaches Anki around Caddy.
 4. `docker compose --profile tls up -d --build`
 
 AnkiConnect is then at `https://anki.example.com/`, the MCP server at
 `https://anki.example.com/mcp/`.
+
+The certificate takes under a minute: `docker compose logs caddy` shows
+`certificate obtained successfully`. If it shows `Invalid format for
+Authorization header` instead, the token in `.env` is not the one Cloudflare
+issued (pasted twice, for example): run `set-token.sh` again, then
+`docker compose --profile tls up -d --force-recreate caddy`. A computer that
+looked the name up before its A record existed may keep getting "not found"
+for up to 30 minutes, because resolvers cache the missing name for the
+time the zone sets (Cloudflare: 1800 s).
 
 ## The GUI, through VNC
 

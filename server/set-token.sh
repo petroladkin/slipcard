@@ -9,7 +9,7 @@ set -euo pipefail
 env_file="$(cd "$(dirname "$0")" && pwd)/.env"
 [ -t 0 ] || { echo "run it in a terminal: it reads the token from the keyboard" >&2; exit 1; }
 
-read -rsp "Cloudflare API token (DNS edit of the zone): " token
+read -rsp "Cloudflare API token (Zone DNS Edit, Zone Read); paste it once: " token
 echo
 [ -n "$token" ] || { echo "empty, nothing changed" >&2; exit 1; }
 case "$token" in
