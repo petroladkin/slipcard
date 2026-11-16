@@ -8,7 +8,8 @@ Claude Desktop runs extensions as local programs that speak MCP over stdio.
 The server speaks MCP over HTTP, and a connector added by URL in Claude
 Desktop is reached from Anthropic's side, not from your computer, so it
 cannot reach an address in your network. This extension is a small bridge
-between the two: `server/bridge.js`, plain Node with no dependencies.
+between the two: `server/bridge.js`, plain Node with no dependencies,
+started by `server/index.js`.
 
 ## Build
 
@@ -44,7 +45,7 @@ starts a new session by itself.
 ## Run it by hand
 
 ```sh
-SLIPCARD_MCP_URL=http://192.0.2.10:3141/mcp/ node claude-desktop/server/bridge.js
+SLIPCARD_MCP_URL=http://192.0.2.10:3141/mcp/ node claude-desktop/server/index.js
 ```
 
 It reads newline-delimited JSON-RPC on stdin and writes the replies to

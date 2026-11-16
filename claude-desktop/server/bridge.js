@@ -1,11 +1,10 @@
-#!/usr/bin/env node
 // The Slipcard Anki bridge: lets an MCP client that speaks stdio (Claude
 // Desktop runs extensions that way) use an MCP server over Streamable HTTP,
 // such as the one on Slipcard's Anki server. No dependencies: Node 18 or
 // newer, with its built-in fetch.
 //
-//   SLIPCARD_MCP_URL=http://192.0.2.10:3141/mcp/ node bridge.js
-//   node bridge.js http://192.0.2.10:3141/mcp/
+//   SLIPCARD_MCP_URL=http://192.0.2.10:3141/mcp/ node index.js
+//   node index.js http://192.0.2.10:3141/mcp/
 //
 // stdin and stdout carry newline-delimited JSON-RPC messages (the MCP stdio
 // transport). Each message is POSTed to the URL; the reply, plain JSON or a
@@ -329,8 +328,6 @@ function main() {
   process.stdout.on('error', () => process.exit(0));
 }
 
-if (require.main === module) {
-  main();
-}
-
-module.exports = { Bridge, SseParser, parseServerUrl, describe };
+// Started by index.js, the extension's entry point; loading this file runs
+// nothing, so the tests can load it.
+module.exports = { Bridge, SseParser, parseServerUrl, describe, main };
