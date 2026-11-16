@@ -12,6 +12,7 @@ bundle="$out/slipcard-anki.mcpb"
 cd "$here"
 
 node --check server/bridge.js
+node --check server/index.js
 node -e 'const m = require("./manifest.json"); if (!m.name || !m.version || !m.server) process.exit(1);'
 node --test test/bridge.test.js
 

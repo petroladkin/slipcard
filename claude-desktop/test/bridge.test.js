@@ -18,7 +18,8 @@ afterEach(async () => {
 
 const { Bridge, SseParser, parseServerUrl } = require('../server/bridge.js');
 
-const BRIDGE = path.join(__dirname, '..', 'server', 'bridge.js');
+// The extension's entry point, as the manifest names it.
+const ENTRY = path.join(__dirname, '..', require('../manifest.json').server.entry_point);
 const PROTOCOL = '2025-06-18';
 
 // A stub Streamable HTTP server. reply: 'json' or 'sse'.
@@ -218,7 +219,7 @@ test('a server that never answers is given up on in time', async () => {
 
 test('as a process: stdio in and out, the session ended when stdin closes', async () => {
   const server = await stubServer();
-  const child = spawn(process.execPath, [BRIDGE], {
+  const child = spawn(process.execPath, [ENTRY], {
     env: { ...process.env, SLIPCARD_MCP_URL: server.url.href },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -242,9 +243,39 @@ test('as a process: stdio in and out, the session ended when stdin closes', asyn
   await server.close();
 });
 
+test("as Claude Desktop's built-in Node runs it: the manifest's entry point, imported by a host script", async () => {
+  // Claude Desktop runs a node extension in a utility process whose main
+  // script is its own host (nodeHost.js): it sets process.argv to
+  // ['node', <entry point>] and loads the entry point with import(), so
+  // require.main is the host, not the extension.
+  const host = [
+    "const { pathToFileURL } = require('node:url');",
+    'const entry = process.argv[1];',
+    "process.argv = ['node', entry];",
+    'import(pathToFileURL(entry).href);',
+  ].join('\n');
+  const server = await stubServer();
+  const child = spawn(process.execPath, ['-e', host, ENTRY], {
+    env: { ...process.env, SLIPCARD_MCP_URL: server.url.href },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  cleanups.push(async () => child.kill());
+  // A bridge that does not start exits at once: listen before anything else.
+  const exited = new Promise((r) => child.on('exit', r));
+  child.stdin.on('error', () => {});
+  let stdout = '';
+  child.stdout.on('data', (d) => (stdout += d));
+  child.stdin.write(`${JSON.stringify(initialize)}\n`);
+  await new Promise((r) => setTimeout(r, 300));
+  child.stdin.end();
+  await exited;
+  assert.match(stdout, /"id":0/, 'no reply to initialize: the bridge did not start');
+  await server.close();
+});
+
 test('as a process: a large reply reaches stdout whole when stdin closes at once', async () => {
   const server = await stubServer();
-  const child = spawn(process.execPath, [BRIDGE, server.url.href], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const child = spawn(process.execPath, [ENTRY, server.url.href], { stdio: ['pipe', 'pipe', 'pipe'] });
   cleanups.push(async () => child.kill());
   const chunks = [];
   child.stdout.on('data', (d) => chunks.push(d));
@@ -259,7 +290,7 @@ test('as a process: a large reply reaches stdout whole when stdin closes at once
 });
 
 test('as a process: no address is a clear message and exit 1', async () => {
-  const child = spawn(process.execPath, [BRIDGE], {
+  const child = spawn(process.execPath, [ENTRY], {
     env: { ...process.env, SLIPCARD_MCP_URL: '' },
     stdio: ['pipe', 'pipe', 'pipe'],
   });

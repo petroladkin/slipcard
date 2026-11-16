@@ -20,10 +20,10 @@
   "keywords": ["anki", "flashcards", "vocabulary", "slipcard", "mcp"],
   "server": {
     "type": "node",
-    "entry_point": "server/bridge.js",
+    "entry_point": "server/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/server/bridge.js"],
+      "args": ["${__dirname}/server/index.js"],
       "env": {
         "SLIPCARD_MCP_URL": "${user_config.server_url}"
       }
