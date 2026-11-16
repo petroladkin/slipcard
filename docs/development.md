@@ -120,6 +120,13 @@ read, so the platforms cannot drift apart.
 | `quietHoursStart` | `"22:00"` | `"HH:MM"`, 24-hour clock |
 | `quietHoursEnd` | `"08:00"` | `"HH:MM"`; a range may cross midnight |
 
+`is:due` finds cards in learning and review cards that are due; new cards
+are left out. To learn new cards from the popup too, use
+`(is:due OR is:new) -is:suspended`: learning and review cards still come
+first. Slipcard shows what the search finds and does not apply a deck's
+limit of new cards per day, so with new cards in the search any popup may
+bring a new one.
+
 A value of the wrong type or out of range is ignored with a line in the
 log, and its default is used. A file that is not a JSON object is reported
 (log, and the menu on macOS), the defaults are used, and Slipcard never
