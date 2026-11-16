@@ -84,7 +84,7 @@ Put your cards on it with [Restore](#import-or-restore-a-collection).
 | Setting | Default | Meaning |
 |---|---|---|
 | `ANKI_SERVER_HOSTS` | (none) | host names or addresses clients use, comma-separated; the MCP server refuses others |
-| `ANKI_PROFILE` | `User 1` | the Anki profile; created on the first start |
+| `ANKI_PROFILE` | `User 1` | the Anki profile that Anki opens; a new name is created, empty, at the next start, and the other profiles stay in the data directory |
 | `ANKI_DATA_DIR` | `./data` | the profile (collection, media, Anki's backups) and the add-ons' settings |
 | `ANKI_BIND` | `0.0.0.0` | where 8765 and 3141 are published; `127.0.0.1` with the `tls` profile |
 | `VNC_BIND` | `127.0.0.1` | where 5900 is published |
@@ -158,6 +158,29 @@ server/restore.sh /path/to/collection.colpkg
 It stops Anki, keeps the current collection as
 `data/<profile>/backups/before-restore-<time>.anki2`, imports the package as
 Anki's File → Import does, and starts Anki again.
+
+### Move a deck to another profile
+
+For example cards made in a test profile that belong in yours. With the old
+profile open, export the deck through AnkiConnect (the path is inside the
+container, where the data directory is `/data`), switch the profile, and
+import it:
+
+```sh
+mkdir -p data/exports
+curl -s http://192.0.2.10:8765 -d '{"action": "exportPackage", "version": 6,
+  "params": {"deck": "My words", "path": "/data/exports/my-words.apkg", "includeSched": true}}'
+# set ANKI_PROFILE in .env to the other profile, then (with --profile tls if you use it)
+docker compose up -d
+curl -s http://192.0.2.10:8765 -d '{"action": "importPackage", "version": 6,
+  "params": {"path": "/data/exports/my-words.apkg"}}'
+```
+
+The `.apkg` is also a copy of the deck to keep. If the profile already has
+a note type of the same name, Anki may import the deck's one under a new
+name, such as `Basic+`. Slipcard's integration tests and test tools refuse
+any profile but `Slipcard Test`, so they never touch a profile with your
+cards.
 
 ## Backups
 
