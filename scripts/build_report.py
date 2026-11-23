@@ -3,7 +3,7 @@
 
 The report directory holds notes/*.md, logs/* and shots/*; the result is one
 self-contained file (no external requests, images inlined as data URIs, logs
-inlined in <details>), in the order of an L4 evidence report:
+inlined in <details>), in the order of an evidence report:
 
   notes/summary.md        1. summary per acceptance criterion
   notes/decisions.md      2. decisions for the maintainer
@@ -181,7 +181,7 @@ figcaption{{font:11px ui-monospace,Menlo,monospace;color:var(--muted)}}
 <h1>{html.escape(title)}</h1>
 <div class="meta">{html.escape(meta)}</div>
 {section("1. Summary per acceptance criterion", note("summary.md"))}
-{section("2. Decisions for Petro", note("decisions.md"))}
+{section("2. Decisions for the maintainer", note("decisions.md"))}
 {section("3. Scenario results", scenarios)}
 {section("4. Not verified", note("not-verified.md"))}
 {section("5. Environment", note("environment.md"))}
