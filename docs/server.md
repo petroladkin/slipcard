@@ -79,6 +79,10 @@ curl -s -H 'Content-Type: application/json' -H 'Accept: application/json, text/e
 The first start creates the profile `ANKI_PROFILE` (an empty collection).
 Put your cards on it with [Restore](#import-or-restore-a-collection).
 
+At its first start the AnkiMCP add-on downloads `pydantic_core` from PyPI
+into `data/ankimcp/`, so that start needs internet access. The version it
+fetches is chosen by the add-on, not pinned by this repository.
+
 ### Settings (`server/.env`)
 
 | Setting | Default | Meaning |
@@ -196,8 +200,43 @@ cron on the server host:
 15 3 * * *  /path/to/server/backup.sh /path/to/server/data /mnt/backup/anki 7
 ```
 
-`backup.sh <data dir> <target dir> [keep]` copies the newest backup and
-keeps the newest `keep` copies (7 by default). It needs GNU `find`.
+`backup.sh <data dir> <target dir> [keep]` copies the newest backup of each
+profile and keeps the newest `keep` copies of each profile (7 by default),
+named `<profile>-backup-<time>.colpkg`. A new copy lands as `.part` and is
+renamed when complete, and older copies go only after that, so even with
+`keep` 1 the target always holds a copy. It needs GNU `find`.
+
+When the target is a network share, check that it is mounted before the
+copy, or the copy lands on the local disk under the mount point. With a
+`hard` NFS mount a call on the share blocks while its server is away, so
+put a timeout on the check and on the job. A systemd timer that does both:
+
+```ini
+# /etc/systemd/system/anki-backup.service
+[Unit]
+Description=Copy the newest Anki backups to the backup share
+
+[Service]
+Type=oneshot
+TimeoutStartSec=10min
+ExecStartPre=/usr/bin/timeout 30 /usr/bin/mountpoint -q /mnt/backup
+ExecStart=/path/to/server/backup.sh /path/to/server/data /mnt/backup/anki 7
+
+# /etc/systemd/system/anki-backup.timer
+[Unit]
+Description=Nightly copy of the Anki backups
+
+[Timer]
+OnCalendar=*-*-* 03:15
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+`systemctl daemon-reload && systemctl enable --now anki-backup.timer`;
+`systemctl list-timers anki-backup.timer` shows the next run and
+`journalctl -u anki-backup` what was copied.
 
 ## Update
 
