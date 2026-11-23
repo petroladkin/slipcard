@@ -34,3 +34,8 @@ gets fixes before 1.0.
   to [its project](https://git.foosoft.net/alex/anki-connect).
 - Card content is shown on screen, over other apps, by design. Use pause or
   quiet hours while sharing the screen.
+- The server in `server/` has no authentication: anyone who can reach its
+  ports can read and change the collection, through AnkiConnect, the MCP
+  server or VNC. It is meant for a network you trust
+  ([docs/server.md](docs/server.md)); the optional HTTPS encrypts the
+  traffic but does not check who connects.
