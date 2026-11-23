@@ -129,7 +129,7 @@ bring a new one.
 
 A value of the wrong type or out of range is ignored with a line in the
 log, and its default is used. A file that is not a JSON object is reported
-(log, and the menu on macOS), the defaults are used, and Slipcard never
+(log and the menu), the defaults are used, and Slipcard never
 writes over it, so a typo in a hand edit is not lost. When the app changes
 a setting it rewrites the file atomically and keeps every key it does not
 know. On Linux, `slipcard --check` prints the path and what was read.
@@ -253,7 +253,7 @@ target/debug/slipcard --show-after 5
 It shows a popup every `intervalMinutes` with the next due card (the settings
 are in `$XDG_CONFIG_HOME/slipcard/settings.json`, see "Settings"). While it
 runs, Enter in its terminal is "next word now"; `q` and Enter, or Ctrl-C,
-quits. There is no tray icon yet.
+quits. The tray icon is described in "Daily use" below.
 
 To check the popup by hand, against a test profile (see "The test deck"
 above), with `SLIPCARD_SETTINGS` pointing at a settings file with that
@@ -300,7 +300,7 @@ profile's `ankiConnectUrl`, `ankiConnectKey` and
 13. A broken settings file: "Settings file is invalid: using the defaults"
     first in the menu; a change says "Not saved: …" and leaves the file.
 
-`slipcard --tray-action interval:30` (or `quiet-hours`) runs a settings
+`slipcard --tray-action interval:30` (or `quiet-hours`, `start-at-login`) runs a settings
 action of the tray the same way the tray does and exits.
 
 On a desktop without layer shell (GNOME, X11) the app warns and shows an

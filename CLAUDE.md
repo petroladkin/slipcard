@@ -52,8 +52,9 @@ Native on each platform, no cross-platform UI framework:
   window or a Pop Shell "Floating Window Exceptions" rule; tray via
   AppIndicator.
 
-Which Pop!_OS is the target (24.04 COSMIC or 22.04 GNOME) is still open; it
-decides the Linux popup.
+The Linux target is Pop!_OS 24.04 COSMIC (layer-shell). The GNOME + Pop
+Shell path is not built: without layer-shell the app warns and shows an
+ordinary window.
 
 ## Risks
 
@@ -65,9 +66,10 @@ decides the Linux popup.
 
 ## Open questions
 
-1. Pop!_OS version: 24.04 COSMIC or 22.04 GNOME.
-2. Word source format and card direction; is pronunciation (TTS) needed.
-3. Default interval and countdown (proposal: 15 min and 30 s).
+1. Word source format and card direction; is pronunciation (TTS) needed.
+
+Settled: the Linux target is Pop!_OS 24.04 COSMIC; the defaults are a
+15-minute interval and a 30-second countdown (`docs/settings.example.json`).
 
 ## Where to read more
 
