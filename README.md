@@ -3,7 +3,7 @@
 Anki vocabulary cards in a timed popup from the tray: on top of full-screen
 apps, never tiled, never stealing focus. macOS and Pop!_OS.
 
-<!-- docs/images/popup.gif: the popup over a full-screen app; typing goes on, Show, a grade, it closes. -->
+![The popup over a full-screen editor on macOS: typing goes on, Show, Good, and it closes](docs/images/popup.gif)
 
 Every few minutes one card appears in the middle of the screen. You glance at
 the word and keep typing, or reveal the answer and grade it. If you ignore it,
@@ -25,8 +25,11 @@ the usual ways to get a card in front of you fail on a working desktop:
 
 ## What it does
 
-<!-- docs/images/macos-card.png, docs/images/macos-grades.png, docs/images/macos-tray.png -->
-<!-- docs/images/popos-card.png, docs/images/popos-grades.png, docs/images/popos-tray.png -->
+| The card | After Show | The menu bar menu |
+|---|---|---|
+| ![A card before the answer: the word, Show and Close (30)](docs/images/macos-card.png) | ![The same card after Show: the answer and Again / Hard / Good / Easy](docs/images/macos-grades.png) | ![The menu bar menu: Anki status, cards due, Next word now, Pause, quiet hours, interval](docs/images/macos-tray.png) |
+
+The pictures are from macOS, with a demo deck.
 
 - **The popup.** The front of the card and **Show**; after Show, the back and
   **Again / Hard / Good / Easy**, sent to Anki as your answer. **Close (30)**
