@@ -3,20 +3,34 @@ import SlipcardCore
 
 /// The card popup: a borderless, non-activating panel that floats over every
 /// Space, full-screen apps included, and leaves keyboard focus where it was.
+/// It renders a CardPopupModel and forwards its buttons to it.
 @MainActor
 final class PopupPanel: NSPanel {
-    static let size = CGSize(width: 420, height: 220)
+    static let width: CGFloat = 460
+    static let minHeight: CGFloat = 220
+    static let textWidth: CGFloat = 400
 
     var onClose: (() -> Void)?
 
-    private let closeButton = NSButton()
+    private let model: CardPopupModel
+    private let wordLabel: NSTextField
     private let answerLabel: NSTextField
+    private let errorLabel = NSTextField(wrappingLabelWithString: "")
     private let showButton = NSButton()
+    private let closeButton = NSButton()
+    private var gradeButtons: [NSButton] = []
+    private let gradeRow = NSStackView()
+    private let stack = NSStackView()
+    private var screenFrame: CGRect?
+    /// Ticks the Close button's countdown once a second while it runs.
+    private var countdownTimer: Timer?
 
-    init(word: String, answer: String) {
-        answerLabel = NSTextField(wrappingLabelWithString: answer)
+    init(model: CardPopupModel) {
+        self.model = model
+        wordLabel = NSTextField(wrappingLabelWithString: model.front)
+        answerLabel = NSTextField(wrappingLabelWithString: model.back)
         super.init(
-            contentRect: CGRect(origin: .zero, size: Self.size),
+            contentRect: CGRect(origin: .zero, size: CGSize(width: Self.width, height: Self.minHeight)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false)
@@ -33,7 +47,15 @@ final class PopupPanel: NSPanel {
         isOpaque = false
         hasShadow = true
 
-        contentView = makeContent(word: word)
+        contentView = makeContent()
+        // The pointer moving over the popup is a reaction: it stops the
+        // countdown. .activeAlways because this app is never active.
+        contentView?.addTrackingArea(NSTrackingArea(
+            rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self, userInfo: nil))
+        model.onChange = { [weak self] in self?.render() }
+        model.onClose = { [weak self] in self?.close() }
+        render()
     }
 
     // A non-activating panel can still become key when clicked, which lets
@@ -45,21 +67,87 @@ final class PopupPanel: NSPanel {
     func present() {
         let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) }
             ?? NSScreen.main
-        if let screen {
-            setFrame(PopupLayout.centeredFrame(size: Self.size, in: screen.visibleFrame), display: false)
-        }
+        screenFrame = screen?.visibleFrame
+        fit()
         // orderFrontRegardless, not makeKeyAndOrderFront: shown without
         // becoming key and without activating this app.
         orderFrontRegardless()
+        startCountdown()
     }
 
     override func close() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
         super.close()
         onClose?()
         onClose = nil
     }
 
-    private func makeContent(word: String) -> NSView {
+    /// One tick a second from the moment the countdown started, so the
+    /// title changes on whole seconds; at zero the model closes the popup.
+    private func startCountdown() {
+        let first = model.countdown.started.addingTimeInterval(1)
+        let timer = Timer(fire: first, interval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.model.tick(now: Date())
+                if self.model.countdown.isStopped || self.model.stage == .closed {
+                    self.countdownTimer?.invalidate()
+                    self.countdownTimer = nil
+                }
+                self.render()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        countdownTimer = timer
+    }
+
+    // Only movement counts: a pointer resting where the popup appears sends
+    // no mouseMoved, so it does not stop the countdown.
+    override func mouseMoved(with event: NSEvent) { model.pointerMoved() }
+    override func mouseEntered(with event: NSEvent) { model.pointerMoved() }
+
+    /// Sizes the panel to its content (at least the PoC size) and centres
+    /// it on its screen; PopupLayout shrinks it to the screen if needed.
+    private func fit() {
+        contentView?.layoutSubtreeIfNeeded()
+        let height = max(Self.minHeight, stack.fittingSize.height + 48)
+        let size = CGSize(width: Self.width, height: height)
+        if let screenFrame {
+            setFrame(PopupLayout.centeredFrame(size: size, in: screenFrame), display: true)
+        } else {
+            setContentSize(size)
+        }
+    }
+
+    private func render() {
+        showButton.isHidden = model.showsAnswer
+        answerLabel.isHidden = !model.showsAnswer
+        gradeRow.isHidden = !model.showsGrades
+        for button in gradeButtons { button.isEnabled = !model.isSending }
+        errorLabel.stringValue = model.failure ?? ""
+        errorLabel.isHidden = model.failure == nil
+        closeButton.title = model.closeLabel(at: Date())
+        if isVisible { fit() }
+    }
+
+    private func label(_ field: NSTextField, size: CGFloat, weight: NSFont.Weight, lines: Int) {
+        field.font = .systemFont(ofSize: size, weight: weight)
+        field.alignment = .center
+        field.preferredMaxLayoutWidth = Self.textWidth
+        field.maximumNumberOfLines = lines
+        field.lineBreakMode = .byWordWrapping
+        field.cell?.truncatesLastVisibleLine = true
+    }
+
+    private func button(_ title: String, _ action: Selector, tag: Int = 0) -> NSButton {
+        let b = NSButton(title: title, target: self, action: action)
+        b.bezelStyle = .rounded
+        b.tag = tag
+        return b
+    }
+
+    private func makeContent() -> NSView {
         let background = NSVisualEffectView()
         background.material = .hudWindow
         background.state = .active
@@ -67,25 +155,28 @@ final class PopupPanel: NSPanel {
         background.layer?.cornerRadius = 14
         background.layer?.masksToBounds = true
 
-        let wordLabel = NSTextField(labelWithString: word)
-        wordLabel.font = .systemFont(ofSize: 30, weight: .semibold)
-        wordLabel.alignment = .center
-
-        answerLabel.alignment = .center
-        answerLabel.isHidden = true
+        label(wordLabel, size: 30, weight: .semibold, lines: 4)
+        label(answerLabel, size: 15, weight: .regular, lines: 12)
+        label(errorLabel, size: 12, weight: .regular, lines: 3)
+        errorLabel.textColor = .systemRed
 
         showButton.title = "Show"
         showButton.bezelStyle = .rounded
         showButton.target = self
         showButton.action = #selector(reveal)
-
-        closeButton.title = "Close"
+        closeButton.title = model.closeLabel(at: Date())
         closeButton.bezelStyle = .rounded
         closeButton.target = self
         closeButton.action = #selector(closeClicked)
 
-        let buttons = NSStackView(views: [showButton, closeButton])
-        let stack = NSStackView(views: [wordLabel, answerLabel, buttons])
+        gradeButtons = [("Again", Ease.again), ("Hard", .hard), ("Good", .good), ("Easy", .easy)]
+            .map { button($0.0, #selector(gradeClicked(_:)), tag: $0.1.rawValue) }
+        gradeRow.setViews(gradeButtons, in: .center)
+        gradeRow.spacing = 8
+
+        let buttons = NSStackView(views: [showButton, gradeRow, closeButton])
+        buttons.spacing = 12
+        stack.setViews([wordLabel, answerLabel, errorLabel, buttons], in: .center)
         stack.orientation = .vertical
         stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -98,10 +189,12 @@ final class PopupPanel: NSPanel {
         return background
     }
 
-    @objc private func reveal() {
-        answerLabel.isHidden = false
-        showButton.isHidden = true
+    @objc private func reveal() { model.reveal() }
+
+    @objc private func gradeClicked(_ sender: NSButton) {
+        guard let ease = Ease(rawValue: sender.tag) else { return }
+        Task { await model.grade(ease) }
     }
 
-    @objc private func closeClicked() { close() }
+    @objc private func closeClicked() { model.close() }
 }

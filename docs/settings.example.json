@@ -1,0 +1,10 @@
+{
+  "ankiConnectKey": null,
+  "ankiConnectUrl": "http://127.0.0.1:8765",
+  "cardQuery": "is:due -is:suspended",
+  "countdownSeconds": 30,
+  "intervalMinutes": 15,
+  "quietHoursEnabled": false,
+  "quietHoursEnd": "08:00",
+  "quietHoursStart": "22:00"
+}

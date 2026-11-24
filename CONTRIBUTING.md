@@ -39,7 +39,8 @@ right to submit it, and you submit it under this project's license
 ([Apache-2.0](LICENSE)). The name and email must match the commit's author.
 To fix a missing sign-off: `git commit --amend -s`, or
 `git rebase --signoff <base>` for several commits. `scripts/dco.sh <base>
-<head>` checks a range the way CI will.
+<head>` checks a range; there is no CI yet, so run it before you open a
+pull request.
 
 ## Branches
 

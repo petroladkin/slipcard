@@ -33,27 +33,36 @@ cross-platform toolkits hide or do not expose:
   accessory (`LSUIElement`): a menu bar item, no Dock icon.
 - **Linux, COSMIC (Wayland).** The popup is a
   [layer-shell](https://wayland.app/protocols/wlr-layer-shell-unstable-v1)
-  surface on the overlay layer with keyboard interactivity `none` or
-  `on_demand`: the compositor does not tile it and does not give it focus.
-  GTK4 + [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell); tray
-  through StatusNotifierItem.
-- **Linux, GNOME + Pop Shell (X11 or Wayland).** GNOME has no layer-shell. The
-  popup is a utility/dialog-type window that Pop Shell floats (or a "Floating
-  Window Exceptions" rule); tray through AppIndicator.
-
-Which Linux path ships first is decided by the proof of concept: popup
-behaviour depends on the compositor, so it is tested on the real desktop
-before anything is built around it.
+  surface on the overlay layer with keyboard interactivity `none`: the
+  compositor does not tile it and never gives it the keyboard, even when it
+  is clicked. GTK4 + [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell);
+  tray through StatusNotifierItem (the `ksni` crate).
+- **Linux without layer-shell (GNOME, X11).** Not built yet. The app warns
+  and shows an ordinary window, which the window manager may tile or focus.
+  A GNOME + Pop Shell path (a utility window that Pop Shell floats, or a
+  "Floating Window Exceptions" rule) is possible later.
 
 ## The parts
 
 - **Scheduler.** Fires every N minutes (default 15), skips quiet hours and
   pauses, and never stacks popups: the next interval starts when the current
-  popup closes. Plain logic with no window-system dependency, unit tested.
+  popup closes. Plain logic with no window-system dependency, unit tested:
+  the app passes the time to every call and arms one timer at the time the
+  scheduler names. The rules, the same on both platforms:
+  - the first popup comes one interval after the start;
+  - pause for an hour: nothing until the hour is over, then the first popup
+    one interval after the pause ends; Resume ends the pause at once;
+  - quiet hours (local time, the range may cross midnight, the end
+    excluded): a popup due inside the range comes at its end;
+  - "next word now" shows a popup at once, even during a pause or quiet
+    hours, but never a second one while a popup is on screen;
+  - after sleep or a long absence (the timer fires more than a minute late)
+    no missed popup is shown: the next one comes one interval after wake.
 - **Popup.** Shows the front of a card; Show reveals the back (translation,
   example); four grade buttons. A countdown ("Close (30)") closes it if
-  nobody reacts. Closing is not an answer. Clicking the popup is the only way
-  it gets focus.
+  nobody reacts. Closing is not an answer. Moving the pointer over it stops
+  the countdown. On macOS clicking the popup is the only way it gets focus;
+  on Linux it never gets the keyboard.
 - **AnkiConnect client.** Uses AnkiConnect API version 6:
   - `findCards` with a deck query such as `deck:"English" is:due` for the
     next due card;
@@ -62,8 +71,15 @@ before anything is built around it.
     recorded and scheduled by Anki itself.
   An optional AnkiConnect API key is sent when configured. When Anki is not
   running, the tray shows it and no popup appears.
-- **Tray / menu bar.** Pause for an hour, quiet hours, "next word now",
-  interval, quit; shows the connection state.
+- **Tray / menu bar.** Shows the connection state and how many cards are
+  due (the icon dims when Anki is not reachable); "next word now" and "next
+  word in 5 s", pause for an hour, quiet hours, interval, open the settings
+  file, start at login, quit.
+- **Settings.** One JSON file with the same keys on every platform (see
+  [development.md](development.md#settings)): the AnkiConnect address and
+  key, the card search, the interval, the countdown and quiet hours. A
+  missing or invalid value falls back to its default; a file that is not
+  valid JSON is never overwritten. The tray writes back what it changes.
 
 ## What Slipcard does not do
 
@@ -76,7 +92,9 @@ AnkiWeb, AnkiDroid and AnkiMobile.
 
 ```
 macos/           Swift package: the macOS app
-linux/           GTK4 app (after the Linux proof of concept)
+linux/           Rust + GTK4 app: the Linux app
+server/          Docker Compose: a headless Anki with AnkiConnect and MCP (docs/server.md)
+claude-desktop/  Claude Desktop extension: a stdio bridge to the server's MCP
 docs/            this documentation
-scripts/         git hooks and repository checks
+scripts/         git hooks, checks, install and bundle scripts, the test Anki
 ```

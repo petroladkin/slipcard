@@ -27,3 +27,10 @@ builddir/
 
 # Rust (Linux app)
 linux/target/
+
+# Anki server (server/): the local data directory and settings
+server/data/
+server/.env
+
+# Claude Desktop extension bundle (claude-desktop/build.sh)
+claude-desktop/*.mcpb

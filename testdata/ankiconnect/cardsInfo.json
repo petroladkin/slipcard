@@ -1,0 +1,116 @@
+{
+  "result": [
+    {
+      "cardId": 1794264260714,
+      "fieldOrder": 0,
+      "ord": 0,
+      "factor": 0,
+      "interval": 0,
+      "note": 1794264260708,
+      "type": 1,
+      "queue": 1,
+      "due": 1794264326,
+      "reps": 1,
+      "lapses": 0,
+      "left": 2,
+      "mod": 1794264260,
+      "flags": 0,
+      "fields": {
+        "Front": {
+          "value": "tedious",
+          "order": 0
+        },
+        "Back": {
+          "value": "long and boring<br><i>Filling in forms is tedious.</i>",
+          "order": 1
+        }
+      },
+      "modelName": "Basic (and reversed card)",
+      "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+      "deckName": "Slipcard Test",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>tedious",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>tedious\n\n<hr id=answer>\n\nlong and boring<br><i>Filling in forms is tedious.</i>",
+      "nextReviews": [
+        "<⁨1⁩m",
+        "<⁨6⁩m",
+        "<⁨10⁩m",
+        "⁨5⁩d"
+      ]
+    },
+    {
+      "cardId": 1794264260702,
+      "fieldOrder": 0,
+      "ord": 0,
+      "factor": 2500,
+      "interval": 1,
+      "note": 1794264260702,
+      "type": 2,
+      "queue": 2,
+      "due": 0,
+      "reps": 0,
+      "lapses": 0,
+      "left": 0,
+      "mod": 1794264260,
+      "flags": 0,
+      "fields": {
+        "Front": {
+          "value": "serendipity",
+          "order": 0
+        },
+        "Back": {
+          "value": "a happy accident<br><i>Finding this café was pure serendipity.</i>",
+          "order": 1
+        }
+      },
+      "modelName": "Basic (and reversed card)",
+      "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+      "deckName": "Slipcard Test",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>serendipity",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>serendipity\n\n<hr id=answer>\n\na happy accident<br><i>Finding this café was pure serendipity.</i>",
+      "nextReviews": [
+        "<⁨10⁩m",
+        "⁨2⁩d",
+        "⁨4⁩d",
+        "⁨6⁩d"
+      ]
+    },
+    {
+      "cardId": 1794264260722,
+      "fieldOrder": 0,
+      "ord": 0,
+      "factor": 0,
+      "interval": 0,
+      "note": 1794264260712,
+      "type": 0,
+      "queue": 0,
+      "due": 47,
+      "reps": 0,
+      "lapses": 0,
+      "left": 0,
+      "mod": 1794264260,
+      "flags": 0,
+      "fields": {
+        "Front": {
+          "value": "lucid [sound:lucid.mp3]",
+          "order": 0
+        },
+        "Back": {
+          "value": "clear and easy to understand<br><i>A lucid explanation.</i>",
+          "order": 1
+        }
+      },
+      "modelName": "Basic (and reversed card)",
+      "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+      "deckName": "Slipcard Test",
+      "question": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>lucid [anki:play:q:0]",
+      "answer": "<style>.card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n</style>lucid [anki:play:q:0]\n\n<hr id=answer>\n\nclear and easy to understand<br><i>A lucid explanation.</i>",
+      "nextReviews": [
+        "<⁨1⁩m",
+        "<⁨6⁩m",
+        "<⁨10⁩m",
+        "⁨3⁩d"
+      ]
+    }
+  ],
+  "error": null
+}
