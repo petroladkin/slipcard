@@ -13,7 +13,7 @@ pub enum Mode {
     Run { show_after: Option<u32> },
 }
 
-pub const USAGE: &str = "usage: slipcard [--show-after SECONDS] | --check | --next-card | --tray-action interval:N|quiet-hours";
+pub const USAGE: &str = "usage: slipcard [--show-after SECONDS] | --check | --next-card | --tray-action interval:N|quiet-hours|start-at-login";
 
 pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Mode, String> {
     let mut show_after = None;

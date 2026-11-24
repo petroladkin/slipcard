@@ -8,6 +8,7 @@
 #   scripts/linux-install.sh --uninstall      remove what an install put there
 #
 # The app is not started, and "Start at login" is left to its tray menu.
+# CARGO (default cargo) and CARGO_TARGET_DIR are honoured as cargo does.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -36,8 +37,13 @@ fi
 echo "== build (release)"
 (cd "$root/linux" && "$cargo" build --release --locked)
 
+# Where cargo put the binary: CARGO_TARGET_DIR if set (a relative one is
+# taken from linux/, where cargo ran), otherwise linux/target.
+target=${CARGO_TARGET_DIR:-target}
+case $target in /*) ;; *) target="$root/linux/$target" ;; esac
+
 echo "== install into $prefix"
-install -Dm755 "$root/linux/target/release/slipcard" "$bin"
+install -Dm755 "$target/release/slipcard" "$bin"
 mkdir -p "$(dirname "$desktop")"
 cat > "$desktop.tmp" <<EOF
 [Desktop Entry]
