@@ -1,0 +1,1 @@
+A throwaway file: its commit has no sign-off, so the DCO check must fail.
