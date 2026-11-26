@@ -1,0 +1,110 @@
+# The checks every pull request into dev and main must pass. The same
+# commands run locally: see "Continuous integration" in CONTRIBUTING.md.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  # Runs on dev and main too, so that pull requests find their caches.
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macos
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: macos
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: swift --version
+      - run: swift build
+      - run: swift test
+
+  linux:
+    name: linux
+    runs-on: ubuntu-24.04
+    env:
+      GTK4_LAYER_SHELL_VERSION: v1.3.0
+      # The compiler from the Ubuntu archive, as in docs/development.md.
+      RUSTC: rustc-1.91
+      CARGO: cargo-1.91
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config git meson ninja-build \
+            libgtk-4-dev libwayland-dev wayland-protocols libgirepository1.0-dev valac \
+            rustc-1.91 cargo-1.91
+
+      # gtk4-layer-shell is not packaged for 24.04: built from source as in
+      # docs/development.md, installed into a staging directory that is cached
+      # and copied into /usr/local on every run.
+      - name: Cache gtk4-layer-shell
+        id: layer-shell
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/gtk4-layer-shell-root
+          key: gtk4-layer-shell-${{ env.GTK4_LAYER_SHELL_VERSION }}-ubuntu-24.04-${{ runner.arch }}
+
+      - name: Build gtk4-layer-shell
+        if: steps.layer-shell.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        run: |
+          git clone --depth 1 --branch "$GTK4_LAYER_SHELL_VERSION" https://github.com/wmww/gtk4-layer-shell
+          cd gtk4-layer-shell
+          meson setup build -Dexamples=false -Ddocs=false -Dtests=false \
+            -Dintrospection=false -Dvapi=false
+          ninja -C build
+          DESTDIR="$HOME/gtk4-layer-shell-root" ninja -C build install
+
+      - name: Install gtk4-layer-shell
+        run: |
+          sudo cp -a "$HOME/gtk4-layer-shell-root/." /
+          sudo ldconfig
+          pkg-config --modversion gtk4-layer-shell-0
+
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            linux/target
+          key: cargo-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('linux/Cargo.lock') }}
+          restore-keys: cargo-ubuntu-24.04-${{ runner.arch }}-
+
+      - name: cargo build
+        working-directory: linux
+        run: |
+          "$CARGO" --version
+          "$CARGO" build --locked
+      - name: cargo test
+        working-directory: linux
+        run: '"$CARGO" test --locked'
+
+  dco:
+    name: dco
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Sign-offs of the pull request's commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: scripts/dco.sh "$BASE" "$HEAD"
