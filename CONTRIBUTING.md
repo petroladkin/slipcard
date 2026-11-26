@@ -49,7 +49,7 @@ pass before the pull request can be merged:
 
 | Job | Runner | What it runs |
 |---|---|---|
-| `macos` | macOS 15 | `swift build` and `swift test` in `macos/` |
+| `macos` | macOS 26 (its default Xcode) | `swift build` and `swift test` in `macos/` |
 | `linux` | Ubuntu 24.04 | the packages and the gtk4-layer-shell 1.3.0 build from [docs/development.md](docs/development.md), then `cargo build --locked` and `cargo test --locked` in `linux/` with `rustc-1.91` |
 | `dco` | Ubuntu 24.04 | `scripts/dco.sh <base> <head>` over the pull request's commits |
 
