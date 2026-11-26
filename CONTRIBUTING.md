@@ -39,8 +39,33 @@ right to submit it, and you submit it under this project's license
 ([Apache-2.0](LICENSE)). The name and email must match the commit's author.
 To fix a missing sign-off: `git commit --amend -s`, or
 `git rebase --signoff <base>` for several commits. `scripts/dco.sh <base>
-<head>` checks a range; there is no CI yet, so run it before you open a
-pull request.
+<head>` checks a range, the same way CI does (see below).
+
+## Continuous integration
+
+Every pull request into `dev` or `main` runs the workflow
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml). Its three jobs must
+pass before the pull request can be merged:
+
+| Job | Runner | What it runs |
+|---|---|---|
+| `macos` | macOS 15 | `swift build` and `swift test` in `macos/` |
+| `linux` | Ubuntu 24.04 | the packages and the gtk4-layer-shell 1.3.0 build from [docs/development.md](docs/development.md), then `cargo build --locked` and `cargo test --locked` in `linux/` with `rustc-1.91` |
+| `dco` | Ubuntu 24.04 | `scripts/dco.sh <base> <head>` over the pull request's commits |
+
+The gtk4-layer-shell build and cargo's downloads and `target/` are cached
+between runs. No job needs a display or an Anki: the integration tests
+against a test Anki are not part of CI.
+
+To run the same checks before you push (the Linux setup once, as in
+[docs/development.md](docs/development.md)):
+
+```sh
+(cd macos && swift build && swift test)                      # macOS
+(cd linux && RUSTC=rustc-1.91 cargo-1.91 build --locked \
+  && RUSTC=rustc-1.91 cargo-1.91 test --locked)              # Linux
+scripts/dco.sh origin/dev HEAD                               # sign-offs
+```
 
 ## Branches
 
